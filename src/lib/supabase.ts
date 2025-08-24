@@ -65,11 +65,14 @@ export const supabase = isSupabaseConfigured
         flowType: 'pkce',
         debug: true
       },
+      // Important: do NOT set global Authorization header with anon key,
+      // supabase-js will attach the user's access token automatically.
+      // Setting Authorization here would override the per-request auth token
+      // and cause 401/RLS errors on row-level secured tables.
       global: {
         headers: {
           'x-client-info': 'upick-grocery-app',
-          'apikey': supabaseAnonKey,
-          'Authorization': `Bearer ${supabaseAnonKey}`
+          'apikey': supabaseAnonKey
         }
       },
       db: {
@@ -83,11 +86,21 @@ export const supabase = isSupabaseConfigured
     })
   : createMockClient();
 
-// 测试数据库连接
-export const testConnection = async () => {
+// Connection status cache
+let connectionCache: { status: boolean; timestamp: number } | null = null;
+const CACHE_DURATION = 60000; // 1 minute
+
+// 测试数据库连接（带缓存）
+export const testConnection = async (): Promise<boolean> => {
   if (!isSupabaseConfigured) {
     console.warn('⚠️ Supabase未配置，使用模拟模式');
     return false;
+  }
+
+  // Check cache first
+  if (connectionCache && (Date.now() - connectionCache.timestamp < CACHE_DURATION)) {
+    console.log('🔄 使用缓存的连接状态:', connectionCache.status);
+    return connectionCache.status;
   }
 
   try {
@@ -106,6 +119,14 @@ export const testConnection = async () => {
     
     clearTimeout(timeoutId);
     
+    const isConnected = !error;
+    
+    // Update cache
+    connectionCache = {
+      status: isConnected,
+      timestamp: Date.now()
+    };
+    
     if (error) {
       console.warn('⚠️ 数据库连接测试失败:', error.message);
       return false;
@@ -116,9 +137,16 @@ export const testConnection = async () => {
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       console.warn('⚠️ 数据库连接超时 (3秒)');
-      return false;
+    } else {
+      console.warn('⚠️ 数据库连接测试异常:', error);
     }
-    console.warn('⚠️ 数据库连接测试异常:', error);
+    
+    // Cache the failure
+    connectionCache = {
+      status: false,
+      timestamp: Date.now()
+    };
+    
     return false;
   }
 };

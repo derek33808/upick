@@ -1,5 +1,8 @@
-import { Carrot, Apple, Beef, Milk, Egg } from 'lucide-react';
+import { Carrot, Apple, Beef, Milk, Egg, Store, Heart } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useUser } from '../contexts/UserContext';
+import { useEffect, useMemo, useState } from 'react';
 
 interface CategoryGridProps {
   onCategoryClick: (category: string) => void;
@@ -45,6 +48,10 @@ const categories = [
 
 export function CategoryGrid({ onCategoryClick }: CategoryGridProps) {
   const { language, products } = useApp();
+  const { user, isAuthenticated } = useAuth();
+  const { addToStoreFavorites, removeFromStoreFavorites, checkIsStoreFavorite, refreshStoreFavorites } = useUser();
+  const [updating, setUpdating] = useState<Set<number>>(new Set());
+  const [localSaved, setLocalSaved] = useState<Set<number>>(new Set());
 
   const text = {
     en: {
@@ -159,6 +166,140 @@ export function CategoryGrid({ onCategoryClick }: CategoryGridProps) {
           </div>
         </div>
       </div>
+
+      {/* Supermarket groups with favorites */}
+      <div className="mt-12">
+        <h2 className={`text-2xl font-bold text-gray-900 mb-4 ${language === 'zh' ? 'font-chinese' : ''}`}>
+          {language === 'en' ? 'Browse by Supermarket' : '按超市浏览'}
+        </h2>
+        {/* 预计算唯一超市列表（避免在渲染中调用 hooks） */}
+        {(() => {
+          const list = products.map(p => p.supermarket).filter(Boolean) as any[];
+          const uniqueStores = Array.from(new Map(list.map(s => [s.id, s])).values());
+          const regions: Array<{key:'north'|'south'; name:string; stores:any[]}> = [
+            { key: 'north', name: language==='en'?'North Area':'北区', stores: uniqueStores.filter((s: any) => s.lat > -43.5) },
+            { key: 'south', name: language==='en'?'South Area':'南区', stores: uniqueStores.filter((s: any) => s.lat <= -43.5) }
+          ];
+          return (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {regions.map(({key, name, stores}) => {
+                const regionKey = key;
+                const regionStores = stores;
+                const regionName = name;
+            return (
+              <div key={regionKey} className="bg-white rounded-2xl border border-gray-200 p-4">
+                <div className="flex items-center mb-3">
+                  <Store className="w-5 h-5 text-gray-500 mr-2" />
+                  <h3 className={`text-lg font-semibold ${language === 'zh' ? 'font-chinese' : ''}`}>{regionName}</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {regionStores.map((s: any) => {
+                    const isFav = checkIsStoreFavorite(s.id) || localSaved.has(s.id);
+                    return (
+                      <div key={s.id} className="flex items-center justify-between p-3 rounded-xl border hover:shadow-sm">
+                        <div className="flex items-center space-x-3">
+                          <img src={s.logo_url} className="w-8 h-8 rounded-full object-cover"/>
+                          <div>
+                            <div className="font-medium text-gray-900">{language==='en'? s.name_en : s.name_zh}</div>
+                            <div className="text-xs text-gray-500">{s.location}</div>
+                          </div>
+                        </div>
+                        <StoreSaveButton storeId={s.id} language={language} />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+              })}
+            </div>
+          );
+        })()}
+      </div>
     </div>
+  );
+}
+
+function StoreSaveButton({ storeId, language }: { storeId: number; language: 'en' | 'zh' }) {
+  const { isAuthenticated, user } = useAuth();
+  const { checkIsStoreFavorite, addToStoreFavorites, removeFromStoreFavorites } = useUser();
+  const [saving, setSaving] = useState(false);
+  
+  // 直接计算当前收藏状态，避免状态同步问题
+  const saved = checkIsStoreFavorite(storeId);
+
+  // 减少日志输出，避免控制台过多信息
+
+  const handleClick = async (e: React.MouseEvent) => {
+    console.log(`[StoreSaveButton] 🔥 按钮被点击! storeId=${storeId}, saved=${saved}, saving=${saving}`);
+    e.stopPropagation();
+    
+    if (!isAuthenticated || !user) {
+      console.log(`[StoreSaveButton] ❌ 用户未登录，显示登录弹窗`);
+      window.dispatchEvent(new CustomEvent('showLoginModal'));
+      return;
+    }
+    
+    if (saving) {
+      console.log(`[StoreSaveButton] ⏳ 正在保存中，忽略点击`);
+      return;
+    }
+    
+    console.log(`[StoreSaveButton] 🚀 开始保存操作...`);
+    setSaving(true);
+    
+    try {
+      let result = false;
+      if (saved) {
+        console.log(`[StoreSaveButton] 🗑️ 调用 removeFromStoreFavorites(${storeId})`);
+        result = await removeFromStoreFavorites(storeId);
+      } else {
+        console.log(`[StoreSaveButton] ➕ 调用 addToStoreFavorites(${storeId})`);
+        result = await addToStoreFavorites(storeId);
+      }
+      console.log(`[StoreSaveButton] 📋 操作结果: ${result ? '✅ 成功' : '❌ 失败'}`);
+      
+      if (result) {
+        // 强制刷新店铺收藏状态
+        console.log(`[StoreSaveButton] 🔄 强制刷新店铺收藏状态...`);
+        // 触发全局状态更新
+        window.dispatchEvent(new CustomEvent('storeFavoritesUpdated'));
+        // 强制组件重新渲染来显示最新状态
+        setSaving(false);
+        setSaving(true);
+        setTimeout(() => setSaving(false), 100);
+      }
+    } catch (error) {
+      console.error(`[StoreSaveButton] 💥 操作异常:`, error);
+    } finally {
+      setSaving(false);
+      console.log(`[StoreSaveButton] 🏁 操作完成`);
+    }
+  };
+
+  // 显示登录状态用于调试
+  const loginStatus = isAuthenticated ? `已登录:${user?.email || 'unknown'}` : '未登录';
+  
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${
+        saved 
+          ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-2 border-blue-300' 
+          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-gray-300'
+      } ${
+        saving 
+          ? 'opacity-50 cursor-not-allowed animate-pulse' 
+          : 'hover:scale-105 active:scale-95'
+      }`}
+      disabled={saving}
+      title={`Store ID: ${storeId} | Saved: ${saved} | Saving: ${saving} | ${loginStatus}`}
+    >
+      <div className="flex items-center space-x-1">
+        <Heart className={`w-4 h-4 transition-all ${saved ? 'fill-current text-blue-600 scale-110' : 'text-gray-500'}`} />
+        <span>{saving ? '...' : (saved ? (language === 'en' ? 'Saved!' : '已收藏!') : (language === 'en' ? 'Save' : '收藏'))}</span>
+      </div>
+    </button>
   );
 }

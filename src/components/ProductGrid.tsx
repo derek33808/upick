@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Package, MapPin, Star, Heart, Zap } from 'lucide-react';
+import { Package, MapPin, Star, Heart, Zap, ShoppingCart, Plus, Check, Store } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
@@ -20,8 +20,21 @@ export function ProductGrid({ onProductClick }: ProductGridProps) {
     sortBy,
   } = useApp();
   const { user, isAuthenticated } = useAuth();
-  const { checkIsFavorite, addToFavorites, removeFromFavorites, isLoading: userLoading } = useUser();
+  const { 
+    checkIsFavorite, 
+    addToFavorites, 
+    removeFromFavorites, 
+    checkIsInCart,
+    addToCart,
+    removeFromCart,
+    checkIsProductFavorite,
+    addToProductFavorites,
+    removeFromProductFavorites,
+    isLoading: userLoading 
+  } = useUser();
   const [updatingFavorites, setUpdatingFavorites] = useState<Set<number>>(new Set());
+  const [updatingCart, setUpdatingCart] = useState<Set<number>>(new Set());
+  const [updatingProductFavorites, setUpdatingProductFavorites] = useState<Set<number>>(new Set());
 
   const handleToggleFavorite = async (productId: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -53,7 +66,76 @@ export function ProductGrid({ onProductClick }: ProductGridProps) {
       });
     }
   };
+
+  const handleToggleCart = async (productId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!isAuthenticated || !user) {
+      window.dispatchEvent(new CustomEvent('showLoginModal'));
+      return;
+    }
+
+    if (updatingCart.has(productId)) return;
+
+    setUpdatingCart(prev => new Set(prev.add(productId)));
+
+    try {
+      const cartStatus = checkIsInCart(productId);
+
+      if (cartStatus.inCart) {
+        await removeFromCart(productId);
+      } else {
+        await addToCart(productId, 1);
+      }
+    } catch (error) {
+      console.error('购物车操作失败:', error);
+    } finally {
+      setUpdatingCart(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(productId);
+        return newSet;
+      });
+    }
+  };
   
+  const handleToggleProductFavorite = async (product: Product, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!isAuthenticated || !user) {
+      window.dispatchEvent(new CustomEvent('showLoginModal'));
+      return;
+    }
+
+    if (updatingProductFavorites.has(product.id)) return;
+
+    setUpdatingProductFavorites(prev => new Set(prev.add(product.id)));
+
+    try {
+      const isProductFavorite = checkIsProductFavorite(product.name_en);
+
+      if (isProductFavorite) {
+        await removeFromProductFavorites(product.name_en);
+        console.log('商品收藏已移除');
+      } else {
+        await addToProductFavorites({
+          name_en: product.name_en,
+          name_zh: product.name_zh,
+          image: product.image,
+          category: product.category
+        });
+        console.log('商品已添加到收藏');
+      }
+    } catch (error) {
+      console.error('商品收藏操作失败:', error);
+    } finally {
+      setUpdatingProductFavorites(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(product.id);
+        return newSet;
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -150,7 +232,9 @@ export function ProductGrid({ onProductClick }: ProductGridProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {filteredProducts.map((product) => {
         const isFavorite = checkIsFavorite(product.id);
-        const isUpdating = updatingFavorites.has(product.id);
+        const cartStatus = checkIsInCart(product.id);
+        const isUpdatingFav = updatingFavorites.has(product.id);
+        const isUpdatingCart = updatingCart.has(product.id);
         
         return (
           <div
@@ -181,20 +265,56 @@ export function ProductGrid({ onProductClick }: ProductGridProps) {
                 </div>
               )}
               
-              {/* Favorite Button */}
-              <button
-                onClick={(e) => handleToggleFavorite(product.id, e)}
-                disabled={isUpdating}
-                className={`absolute top-3 right-3 p-2 rounded-full shadow-md transition-colors ${
-                  isFavorite ? 'bg-red-500 text-white' : 'bg-white text-gray-400 hover:text-red-500'
-                } ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {isUpdating ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                ) : (
-                  <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-                )}
-              </button>
+              {/* Action Buttons */}
+              <div className="absolute top-3 right-3 flex flex-col space-y-2">
+                {/* Favorite Button */}
+                <button
+                  onClick={(e) => handleToggleFavorite(product.id, e)}
+                  disabled={isUpdatingFav}
+                  className={`p-2 rounded-full shadow-md transition-colors ${
+                    isFavorite ? 'bg-red-500 text-white' : 'bg-white text-gray-400 hover:text-red-500'
+                  } ${isUpdatingFav ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {isUpdatingFav ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                  ) : (
+                    <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+                  )}
+                </button>
+
+                {/* Cart Button */}
+                <button
+                  onClick={(e) => handleToggleCart(product.id, e)}
+                  disabled={isUpdatingCart}
+                  className={`p-2 rounded-full shadow-md transition-colors ${
+                    cartStatus.inCart ? 'bg-green-500 text-white' : 'bg-white text-gray-400 hover:text-green-500'
+                  } ${isUpdatingCart ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {isUpdatingCart ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                  ) : cartStatus.inCart ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Plus className="w-4 h-4" />
+                  )}
+                </button>
+
+                {/* 单一产品收藏按钮（按名称） */}
+                <button
+                  type="button"
+                  onClick={(e) => handleToggleProductFavorite(product, e)}
+                  disabled={updatingProductFavorites.has(product.id)}
+                  className={`p-2 rounded-full shadow-md transition-colors ${
+                    checkIsProductFavorite(product.name_en) ? 'bg-blue-500 text-white' : 'bg-white text-gray-400 hover:text-blue-500'
+                  } ${updatingProductFavorites.has(product.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {updatingProductFavorites.has(product.id) ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                  ) : (
+                    <Store className={`w-4 h-4 ${checkIsProductFavorite(product.name_en) ? 'fill-current' : ''}`} />
+                  )}
+                </button>
+              </div>
             </div>
               
             <div className="p-4">

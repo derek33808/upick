@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { UserService } from '../services/UserService';
-import { UserFavorite, CartItem, PriceAlert, ShoppingRoute, RouteOptimization } from '../types/user';
+import { DemoUserData, DemoProductFavorites, DemoStoreFavorites } from '../lib/demo-favorites';
+import { supabase } from '../lib/supabase';
+import { UserFavorite, CartItem, PriceAlert, ShoppingRoute, RouteOptimization, ProductFavorite, StoreFavorite } from '../types/user';
 
 interface UserContextType {
   // 收藏管理
@@ -37,6 +39,20 @@ interface UserContextType {
   calculateOptimalRoute: () => Promise<ShoppingRoute | null>;
   getRouteOptimization: () => Promise<RouteOptimization | null>;
 
+  // 商品收藏
+  productFavorites: ProductFavorite[];
+  addToProductFavorites: (product: { name_en: string; name_zh: string; image: string; category: string }) => Promise<boolean>;
+  removeFromProductFavorites: (productNameEn: string) => Promise<boolean>;
+  checkIsProductFavorite: (productNameEn: string) => boolean;
+  refreshProductFavorites: () => Promise<void>;
+
+  // 店铺收藏
+  storeFavorites: StoreFavorite[];
+  addToStoreFavorites: (supermarketId: number) => Promise<boolean>;
+  removeFromStoreFavorites: (supermarketId: number) => Promise<boolean>;
+  checkIsStoreFavorite: (supermarketId: number) => boolean;
+  refreshStoreFavorites: () => Promise<void>;
+
   // 状态管理
   isLoading: boolean;
   createDemoAccounts: () => Promise<void>;
@@ -48,6 +64,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated } = useAuth();
+  const [isDemoMode, setIsDemoMode] = useState(false);
   
   // 状态管理
   const [favorites, setFavorites] = useState<UserFavorite[]>([]);
@@ -63,6 +80,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [routeOptimization, setRouteOptimization] = useState<RouteOptimization | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [productFavorites, setProductFavorites] = useState<ProductFavorite[]>([]);
+  const [storeFavorites, setStoreFavorites] = useState<StoreFavorite[]>([]);
 
   const clearError = () => setError(null);
   const createDemoAccounts = async () => {
@@ -116,6 +135,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     } else {
       clearUserData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user]);
 
   const loadUserData = async () => {
@@ -123,22 +143,29 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     setIsLoading(true);
     try {
-      // 加载用户数据，但不让单个失败阻止其他数据加载
-      const results = await Promise.allSettled([
+      // 准备加载任务列表
+      const tasks = [
         refreshFavorites(),
         refreshCart(),
-        refreshPriceAlerts()
-      ]);
+        refreshProductFavorites(),
+        refreshStoreFavorites(),
+        !isDemoMode ? refreshPriceAlerts() : Promise.resolve()
+      ];
+      
+      // 加载用户数据，但不让单个失败阻止其他数据加载
+      const results = await Promise.allSettled(tasks);
       
       // 记录失败的操作，但不抛出错误
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
-          const operations = ['favorites', 'cart', 'price alerts'];
+          const operations = isDemoMode 
+            ? ['favorites', 'cart', 'product favorites', 'store favorites'] 
+            : ['favorites', 'cart', 'price alerts', 'product favorites', 'store favorites'];
           console.warn(`⚠️ Failed to load ${operations[index]}:`, result.reason);
         }
       });
     } catch (error) {
-      console.error('加载用户数据失败:', error);
+      console.error('❌ [USER] Load user data failed:', error);
     } finally {
       setIsLoading(false);
     }
@@ -151,21 +178,60 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setPriceAlerts([]);
     setShoppingRoute(null);
     setRouteOptimization(null);
+    setProductFavorites([]);
+    setStoreFavorites([]);
   };
+
+  // 检测演示模式
+  useEffect(() => {
+    if (user?.id && typeof user.id === 'string' && user.id.startsWith('demo-')) {
+      if (!isDemoMode) {
+        setIsDemoMode(true);
+        console.log('🎭 [USER] Demo mode detected for user:', user.id);
+      }
+    } else {
+      if (isDemoMode) {
+        setIsDemoMode(false);
+      }
+    }
+  }, [user?.id, isDemoMode]);
 
   // 收藏管理
   const addToFavorites = async (productId: number): Promise<boolean> => {
     if (!user) return false;
     
     try {
-      const result = await UserService.addToFavorites(user.id, productId);
+      let result;
+      if (isDemoMode) {
+        console.log('🎭 [USER] Using demo favorites for add');
+        result = await DemoUserData.addToFavorites(user.id.toString(), productId);
+      } else {
+        result = await UserService.addToFavorites(user.id.toString(), productId);
+      }
+      
       if (result.success) {
         await refreshFavorites();
         return true;
       }
       return false;
     } catch (error) {
-      console.error('添加收藏失败:', error);
+      console.error('❌ [USER] Add to favorites failed:', error);
+      
+      // Try demo mode as fallback
+      if (!isDemoMode) {
+        console.log('🎭 [USER] Trying demo mode as fallback for add favorites');
+        setIsDemoMode(true);
+        try {
+          const result = await DemoUserData.addToFavorites(user.id.toString(), productId);
+          if (result.success) {
+            await refreshFavorites();
+            return true;
+          }
+        } catch (demoError) {
+          console.error('❌ [USER] Demo fallback also failed:', demoError);
+        }
+      }
+      
       return false;
     }
   };
@@ -174,19 +240,45 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!user) return false;
     
     try {
-      const result = await UserService.removeFromFavorites(user.id, productId);
+      let result;
+      if (isDemoMode) {
+        console.log('🎭 [USER] Using demo favorites for remove');
+        result = await DemoUserData.removeFromFavorites(user.id.toString(), productId);
+      } else {
+        result = await UserService.removeFromFavorites(user.id.toString(), productId);
+      }
+      
       if (result.success) {
         setFavorites(prev => prev.filter(fav => fav.product_id !== productId));
         return true;
       }
       return false;
     } catch (error) {
-      console.error('移除收藏失败:', error);
+      console.error('❌ [USER] Remove from favorites failed:', error);
+      
+      // Try demo mode as fallback
+      if (!isDemoMode) {
+        console.log('🎭 [USER] Trying demo mode as fallback for remove favorites');
+        setIsDemoMode(true);
+        try {
+          const result = await DemoUserData.removeFromFavorites(user.id.toString(), productId);
+          if (result.success) {
+            setFavorites(prev => prev.filter(fav => fav.product_id !== productId));
+            return true;
+          }
+        } catch (demoError) {
+          console.error('❌ [USER] Demo fallback also failed:', demoError);
+        }
+      }
+      
       return false;
     }
   };
 
   const checkIsFavorite = (productId: number): boolean => {
+    if (isDemoMode && user) {
+      return DemoUserData.checkIsFavorite(user.id.toString(), productId);
+    }
     return favorites.some(fav => fav.product_id === productId);
   };
 
@@ -194,10 +286,43 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     
     try {
-      const favoritesData = await UserService.getUserFavorites(user.id);
-      setFavorites(favoritesData);
+      if (isDemoMode) {
+        console.log('🎭 [USER] Refreshing demo favorites');
+        const demoFavorites = await DemoUserData.getUserFavorites(user.id.toString());
+        // Convert demo favorites to UserFavorite format
+        const convertedFavorites: UserFavorite[] = demoFavorites.map(f => ({
+          id: f.id,
+          user_id: f.user_id,
+          product_id: f.product_id,
+          created_at: f.created_at,
+          product: undefined // Will be populated by other components if needed
+        }));
+        setFavorites(convertedFavorites);
+      } else {
+        const favoritesData = await UserService.getUserFavorites(user.id.toString());
+        setFavorites(favoritesData);
+      }
     } catch (error) {
-      console.error('刷新收藏失败:', error);
+      console.error('❌ [USER] Refresh favorites failed:', error);
+      
+      // Try demo mode as fallback
+      if (!isDemoMode) {
+        console.log('🎭 [USER] Trying demo mode as fallback for refresh favorites');
+        setIsDemoMode(true);
+        try {
+          const demoFavorites = await DemoUserData.getUserFavorites(user.id.toString());
+          const convertedFavorites: UserFavorite[] = demoFavorites.map(f => ({
+            id: f.id,
+            user_id: f.user_id,
+            product_id: f.product_id,
+            created_at: f.created_at,
+            product: undefined
+          }));
+          setFavorites(convertedFavorites);
+        } catch (demoError) {
+          console.error('❌ [USER] Demo fallback also failed:', demoError);
+        }
+      }
     }
   };
 
@@ -206,14 +331,37 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!user) return false;
     
     try {
-      const result = await UserService.addToCart(user.id, productId, quantity, notes);
+      let result;
+      if (isDemoMode) {
+        console.log('🎭 [USER] Using demo cart for add');
+        result = await DemoUserData.addToCart(user.id.toString(), productId, quantity, notes);
+      } else {
+        result = await UserService.addToCart(user.id.toString(), productId, quantity, notes);
+      }
+      
       if (result.success) {
         await refreshCart();
         return true;
       }
       return false;
     } catch (error) {
-      console.error('添加到购物车失败:', error);
+      console.error('❌ [USER] Add to cart failed:', error);
+      
+      // Try demo mode as fallback
+      if (!isDemoMode) {
+        console.log('🎭 [USER] Trying demo mode as fallback for add to cart');
+        setIsDemoMode(true);
+        try {
+          const result = await DemoUserData.addToCart(user.id.toString(), productId, quantity, notes);
+          if (result.success) {
+            await refreshCart();
+            return true;
+          }
+        } catch (demoError) {
+          console.error('❌ [USER] Demo fallback also failed:', demoError);
+        }
+      }
+      
       return false;
     }
   };
@@ -222,7 +370,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!user) return false;
     
     try {
-      const result = await UserService.updateCartQuantity(user.id, productId, quantity);
+      const result = await UserService.updateCartQuantity(user.id.toString(), productId, quantity);
       if (result.success) {
         await refreshCart();
         return true;
@@ -238,15 +386,49 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!user) return false;
     
     try {
-      const result = await UserService.removeFromCart(user.id, productId);
+      let result;
+      if (isDemoMode) {
+        console.log('🎭 [USER] Using demo cart for remove');
+        result = await DemoUserData.removeFromCart(user.id.toString(), productId);
+      } else {
+        result = await UserService.removeFromCart(user.id.toString(), productId);
+      }
+      
       if (result.success) {
         setCart(prev => prev.filter(item => item.product_id !== productId));
-        await updateCartStats();
+        if (!isDemoMode) {
+          await updateCartStats();
+        } else {
+          // Update demo cart stats
+          const currentCart = cart.filter(item => item.product_id !== productId);
+          setCartStats({
+            total_items: currentCart.length,
+            total_cost: currentCart.reduce((sum, item) => sum + (item.quantity * 5), 0),
+            unique_stores: 1,
+            items_count: currentCart.reduce((sum, item) => sum + item.quantity, 0)
+          });
+        }
         return true;
       }
       return false;
     } catch (error) {
-      console.error('从购物车移除失败:', error);
+      console.error('❌ [USER] Remove from cart failed:', error);
+      
+      // Try demo mode as fallback
+      if (!isDemoMode) {
+        console.log('🎭 [USER] Trying demo mode as fallback for remove from cart');
+        setIsDemoMode(true);
+        try {
+          const result = await DemoUserData.removeFromCart(user.id.toString(), productId);
+          if (result.success) {
+            setCart(prev => prev.filter(item => item.product_id !== productId));
+            return true;
+          }
+        } catch (demoError) {
+          console.error('❌ [USER] Demo fallback also failed:', demoError);
+        }
+      }
+      
       return false;
     }
   };
@@ -255,7 +437,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!user) return false;
     
     try {
-      const result = await UserService.clearCart(user.id);
+      const result = await UserService.clearCart(user.id.toString());
       if (result.success) {
         setCart([]);
         setCartStats({ total_items: 0, total_cost: 0, unique_stores: 0, items_count: 0 });
@@ -271,6 +453,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   const checkIsInCart = (productId: number): { inCart: boolean; quantity: number } => {
+    if (isDemoMode && user) {
+      return DemoUserData.checkIsInCart(user.id.toString(), productId);
+    }
     const cartItem = cart.find(item => item.product_id === productId);
     return {
       inCart: !!cartItem,
@@ -282,11 +467,58 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     
     try {
-      const cartData = await UserService.getUserCart(user.id);
-      setCart(cartData);
-      await updateCartStats();
+      if (isDemoMode) {
+        console.log('🎭 [USER] Refreshing demo cart');
+        const demoCart = await DemoUserData.getUserCart(user.id.toString());
+        // Convert demo cart to CartItem format
+        const convertedCart: CartItem[] = demoCart.map(c => ({
+          id: c.id,
+          user_id: c.user_id,
+          product_id: c.product_id,
+          quantity: c.quantity,
+          notes: c.notes || undefined,
+          added_at: c.added_at,
+          updated_at: c.updated_at,
+          product: undefined
+        }));
+        setCart(convertedCart);
+        // 简单计算演示模式的购物车统计
+        setCartStats({
+          total_items: convertedCart.length,
+          total_cost: convertedCart.reduce((sum, item) => sum + (item.quantity * 5), 0), // Mock price
+          unique_stores: 1,
+          items_count: convertedCart.reduce((sum, item) => sum + item.quantity, 0)
+        });
+      } else {
+        const cartData = await UserService.getUserCart(user.id.toString());
+        setCart(cartData);
+        await updateCartStats();
+      }
     } catch (error) {
-      console.error('刷新购物车失败:', error);
+      console.error('❌ [USER] Refresh cart failed:', error);
+      
+      // Try demo mode as fallback
+      if (!isDemoMode) {
+        console.log('🎭 [USER] Trying demo mode as fallback for refresh cart');
+        setIsDemoMode(true);
+        try {
+          const demoCart = await DemoUserData.getUserCart(user.id.toString());
+          const convertedCart: CartItem[] = demoCart.map(c => ({
+            id: c.id,
+            user_id: c.user_id,
+            product_id: c.product_id,
+            quantity: c.quantity,
+            notes: c.notes || undefined,
+            added_at: c.added_at,
+            updated_at: c.updated_at,
+            product: undefined
+          }));
+          setCart(convertedCart);
+          await updateCartStats();
+        } catch (demoError) {
+          console.error('❌ [USER] Demo fallback also failed:', demoError);
+        }
+      }
     }
   };
 
@@ -294,7 +526,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     
     try {
-      const stats = await UserService.getCartStats(user.id);
+      const stats = await UserService.getCartStats(user.id.toString());
       setCartStats(stats);
     } catch (error) {
       console.error('更新购物车统计失败:', error);
@@ -306,7 +538,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!user) return false;
     
     try {
-      const result = await UserService.addPriceAlert(user.id, productId, targetPrice);
+      const result = await UserService.addPriceAlert(user.id.toString(), productId, targetPrice);
       if (result.success) {
         await refreshPriceAlerts();
         return true;
@@ -322,7 +554,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     
     try {
-      const alertsData = await UserService.getUserPriceAlerts(user.id);
+      const alertsData = await UserService.getUserPriceAlerts(user.id.toString());
       setPriceAlerts(alertsData);
     } catch (error) {
       console.error('刷新价格提醒失败:', error);
@@ -335,7 +567,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     setIsLoading(true);
     try {
-      const route = await UserService.calculateOptimalRoute(user.id);
+      const route = await UserService.calculateOptimalRoute(user.id.toString());
       setShoppingRoute(route);
       return route;
     } catch (error) {
@@ -350,7 +582,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!user) return null;
     
     try {
-      const optimization = await UserService.getRouteOptimization(user.id);
+      const optimization = await UserService.getRouteOptimization(user.id.toString());
       setRouteOptimization(optimization);
       return optimization;
     } catch (error) {
@@ -359,43 +591,230 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // 商品收藏管理
+  const addToProductFavorites = async (product: { name_en: string; name_zh: string; image: string; category: string }) => {
+    if (!user?.id) return false;
+    
+    try {
+      if (isDemoMode) {
+        const success = DemoProductFavorites.addToProductFavorites(user.id.toString(), product);
+        if (success) await refreshProductFavorites();
+        return success;
+      }
+      // 真实后端暂未实现：回退到演示模式
+      const success = DemoProductFavorites.addToProductFavorites(user.id.toString(), product);
+      if (success) {
+        if (!isDemoMode) setIsDemoMode(true);
+        await refreshProductFavorites();
+      }
+      return success;
+    } catch (error) {
+      console.error('Failed to add product to favorites:', error);
+      // 失败时兜底到演示模式
+      try {
+        const success = DemoProductFavorites.addToProductFavorites(user.id.toString(), product);
+        if (success) {
+          if (!isDemoMode) setIsDemoMode(true);
+          await refreshProductFavorites();
+        }
+        return success;
+      } catch {
+        return false;
+      }
+    }
+  };
+
+  const removeFromProductFavorites = async (productNameEn: string) => {
+    if (!user?.id) return false;
+    
+    try {
+      if (isDemoMode) {
+        const success = DemoProductFavorites.removeFromProductFavorites(user.id.toString(), productNameEn);
+        if (success) await refreshProductFavorites();
+        return success;
+      }
+      // 真实后端暂未实现：回退到演示模式
+      const success = DemoProductFavorites.removeFromProductFavorites(user.id.toString(), productNameEn);
+      if (success) {
+        if (!isDemoMode) setIsDemoMode(true);
+        await refreshProductFavorites();
+      }
+      return success;
+    } catch (error) {
+      console.error('Failed to remove product from favorites:', error);
+      try {
+        const success = DemoProductFavorites.removeFromProductFavorites(user.id.toString(), productNameEn);
+        if (success) {
+          if (!isDemoMode) setIsDemoMode(true);
+          await refreshProductFavorites();
+        }
+        return success;
+      } catch {
+        return false;
+      }
+    }
+  };
+
+  const checkIsProductFavorite = (productNameEn: string) => {
+    if (!user?.id) return false;
+    return productFavorites.some(f => 
+      f.product_name_en.toLowerCase() === productNameEn.toLowerCase()
+    );
+  };
+
+  const refreshProductFavorites = async () => {
+    if (!user?.id) return;
+    
+    try {
+      if (isDemoMode) {
+        const demoFavorites = DemoProductFavorites.getUserProductFavorites(user.id.toString());
+        setProductFavorites(demoFavorites);
+      } else {
+        // 真实后端暂未实现：使用演示数据
+        const demoFavorites = DemoProductFavorites.getUserProductFavorites(user.id.toString());
+        setProductFavorites(demoFavorites);
+      }
+    } catch (error) {
+      console.error('Failed to refresh product favorites:', error);
+    }
+  };
+
+  // 店铺收藏管理
+  const addToStoreFavorites = async (supermarketId: number) => {
+    if (!user?.id) return false;
+    
+    try {
+      if (isDemoMode) {
+        const success = DemoStoreFavorites.addToStoreFavorites(user.id.toString(), supermarketId);
+        if (success) await refreshStoreFavorites();
+        return success;
+      }
+      // 真实后端暂未实现：回退到演示模式
+      const success = DemoStoreFavorites.addToStoreFavorites(user.id.toString(), supermarketId);
+      if (success) {
+        if (!isDemoMode) setIsDemoMode(true);
+        // 立即刷新状态
+        await refreshStoreFavorites();
+      }
+      return success;
+    } catch (error) {
+      console.error('Failed to add store to favorites:', error);
+      try {
+        const success = DemoStoreFavorites.addToStoreFavorites(user.id.toString(), supermarketId);
+        if (success) {
+          if (!isDemoMode) setIsDemoMode(true);
+          await refreshStoreFavorites();
+        }
+        return success;
+      } catch {
+        return false;
+      }
+    }
+  };
+
+  const removeFromStoreFavorites = async (supermarketId: number) => {
+    if (!user?.id) return false;
+    
+    try {
+      if (isDemoMode) {
+        const success = DemoStoreFavorites.removeFromStoreFavorites(user.id.toString(), supermarketId);
+        if (success) await refreshStoreFavorites();
+        return success;
+      }
+      const success = DemoStoreFavorites.removeFromStoreFavorites(user.id.toString(), supermarketId);
+      if (success) {
+        if (!isDemoMode) setIsDemoMode(true);
+        await refreshStoreFavorites();
+      }
+      return success;
+    } catch (error) {
+      console.error('Failed to remove store from favorites:', error);
+      try {
+        const success = DemoStoreFavorites.removeFromStoreFavorites(user.id.toString(), supermarketId);
+        if (success) {
+          if (!isDemoMode) setIsDemoMode(true);
+          await refreshStoreFavorites();
+        }
+        return success;
+      } catch {
+        return false;
+      }
+    }
+  };
+
+  const checkIsStoreFavorite = (supermarketId: number) => {
+    if (!user?.id) return false;
+    const isFavorited = storeFavorites.some(f => f.supermarket_id === supermarketId);
+    console.log(`[UserContext] checkIsStoreFavorite(${supermarketId}): ${isFavorited}, 总收藏数: ${storeFavorites.length}`);
+    return isFavorited;
+  };
+
+  const refreshStoreFavorites = async () => {
+    if (!user?.id) return;
+    
+    try {
+      // 总是从演示数据中读取，确保兼容性
+      const demoFavorites = DemoStoreFavorites.getUserStoreFavorites(user.id.toString());
+      console.log(`[UserContext] refreshStoreFavorites: 读取到 ${demoFavorites.length} 个店铺收藏`, demoFavorites);
+      setStoreFavorites(demoFavorites);
+    } catch (error) {
+      console.error('Failed to refresh store favorites:', error);
+      setStoreFavorites([]);
+    }
+  };
+
+  const value: UserContextType = {
+    // 收藏管理
+    favorites,
+    addToFavorites,
+    removeFromFavorites,
+    checkIsFavorite,
+    refreshFavorites,
+
+    // 购物车管理
+    cart,
+    cartStats,
+    addToCart,
+    updateCartQuantity,
+    removeFromCart,
+    clearCart,
+    checkIsInCart,
+    refreshCart,
+
+    // 价格提醒
+    priceAlerts,
+    addPriceAlert,
+    refreshPriceAlerts,
+
+    // 购物路线优化
+    shoppingRoute,
+    routeOptimization,
+    calculateOptimalRoute,
+    getRouteOptimization,
+
+    // 商品收藏
+    productFavorites,
+    addToProductFavorites,
+    removeFromProductFavorites,
+    checkIsProductFavorite,
+    refreshProductFavorites,
+
+    // 店铺收藏
+    storeFavorites,
+    addToStoreFavorites,
+    removeFromStoreFavorites,
+    checkIsStoreFavorite,
+    refreshStoreFavorites,
+
+    // 状态管理
+    isLoading,
+    error,
+    createDemoAccounts,
+    clearError
+  };
+
   return (
-    <UserContext.Provider value={{
-      // 收藏管理
-      favorites,
-      addToFavorites,
-      removeFromFavorites,
-      checkIsFavorite,
-      refreshFavorites,
-
-      // 购物车管理
-      cart,
-      cartStats,
-      addToCart,
-      updateCartQuantity,
-      removeFromCart,
-      clearCart,
-      checkIsInCart,
-      refreshCart,
-
-      // 价格提醒
-      priceAlerts,
-      addPriceAlert,
-      refreshPriceAlerts,
-
-      // 购物路线优化
-      shoppingRoute,
-      routeOptimization,
-      calculateOptimalRoute,
-      getRouteOptimization,
-
-      // 状态管理
-      isLoading,
-      error,
-      isLoading,
-      createDemoAccounts,
-      clearError
-    }}>
+    <UserContext.Provider value={value}>
       {children}
     </UserContext.Provider>
   );

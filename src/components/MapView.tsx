@@ -423,8 +423,8 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
       <div className="relative">
         <div 
           ref={mapRef} 
-          className="w-full h-96 bg-gray-100"
-          style={{ minHeight: '400px' }}
+          className="w-full h-96 bg-gray-100 relative z-0"
+          style={{ minHeight: '400px', zIndex: 0 }}
         />
         
         {/* Loading State */}
@@ -459,7 +459,7 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
 
         {/* Custom Zoom Controls */}
         {mapLoaded && (
-          <div className="absolute top-4 right-4 flex flex-col space-y-1" style={{ zIndex: 1000 }}>
+          <div className="absolute top-4 right-4 flex flex-col space-y-1" style={{ zIndex: 10 }}>
             <button
               onClick={handleZoomIn}
               className="w-10 h-10 bg-white border-2 border-gray-300 rounded-lg shadow-xl hover:bg-gray-50 hover:border-primary-500 flex items-center justify-center transition-all duration-200 active:scale-95"

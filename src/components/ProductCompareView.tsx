@@ -1,9 +1,11 @@
 import { ArrowLeft, MapPin, Star, Clock, Zap, TrendingUp, TrendingDown, Navigation, ExternalLink, Heart, LogIn, ShoppingCart, Plus, Check, Package, Award } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useUser } from '../contexts/UserContext';
 import { Product } from '../types';
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { PriceHistoryChart } from './PriceHistoryChart';
+import { generateSeededSeries } from '../lib/chartUtils';
 
 interface ProductCompareViewProps {
   productName: string;
@@ -14,6 +16,7 @@ interface ProductCompareViewProps {
 export function ProductCompareView({ productName, onBack, onProductClick }: ProductCompareViewProps) {
   const { language, products } = useApp();
   const { user, isAuthenticated } = useAuth();
+  const { addToFavorites, removeFromFavorites, addToCart, removeFromCart, checkIsFavorite, checkIsInCart } = useUser();
   const [expandedProducts, setExpandedProducts] = useState<Set<number>>(new Set());
   const [favoriteStates, setFavoriteStates] = useState<Map<number, boolean>>(new Map());
   const [shoppingListStates, setShoppingListStates] = useState<Map<number, boolean>>(new Map());
@@ -111,13 +114,14 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
     product.name_en.toLowerCase() === productName.toLowerCase()
   ).sort((a, b) => a.price - b.price);
 
-  // Calculate 30-day historical low (mock calculation for demo)
-  const getHistoricalLow = () => {
-    if (matchingProducts.length === 0) return 0;
-    const currentMinPrice = Math.min(...matchingProducts.map(p => p.price));
-    // Simulate historical low (usually 10-20% lower than current)
-    return currentMinPrice * (0.8 + Math.random() * 0.15);
-  };
+  // Stable series for header chart
+  const stableEndDateRef = useRef<Date>(new Date());
+
+  const headerSeries = useMemo(() => {
+    const base = matchingProducts[0]?.price || 5;
+    const seedKey = `name:${productName}|${Math.round(base * 100)}`;
+    return generateSeededSeries(seedKey, base, 90);
+  }, [productName, matchingProducts.length > 0 ? matchingProducts[0].price : 0]);
 
   const handleGetDirections = (product: Product) => {
     if (product.supermarket?.lat && product.supermarket?.lng) {
@@ -135,48 +139,29 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
 
   // Load user's favorite and shopping list status for all products
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (isAuthenticated && user && matchingProducts.length > 0) {
+      const newFavoriteStates = new Map<number, boolean>();
+      const newShoppingStates = new Map<number, boolean>();
+      
       matchingProducts.forEach(product => {
-        checkFavoriteStatus(product.id);
-        checkShoppingListStatus(product.id);
+        // Use global state instead of direct API calls
+        const isFavorite = checkIsFavorite(product.id);
+        const cartStatus = checkIsInCart(product.id);
+        
+        newFavoriteStates.set(product.id, isFavorite);
+        newShoppingStates.set(product.id, cartStatus.inCart);
       });
+      
+      setFavoriteStates(newFavoriteStates);
+      setShoppingListStates(newShoppingStates);
     }
-  }, [isAuthenticated, user, matchingProducts]);
-
-  const checkFavoriteStatus = async (productId: number) => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('user_favorites')
-        .select('id')
-        .eq('user_id', user.id)
-          .eq('product_id', productId)
-          .maybeSingle();
-      setFavoriteStates(prev => new Map(prev.set(productId, !error && !!data)));
-    } catch (error) {
-      setFavoriteStates(prev => new Map(prev.set(productId, false)));
-    }
-  };
-
-  const checkShoppingListStatus = async (productId: number) => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('shopping_cart')
-        .select('id')
-        .eq('user_id', user.id)
-          .eq('product_id', productId)
-          .maybeSingle();
-      setShoppingListStates(prev => new Map(prev.set(productId, !error && !!data)));
-    } catch (error) {
-      setShoppingListStates(prev => new Map(prev.set(productId, false)));
-    }
-  };
+  }, [isAuthenticated, user?.id, matchingProducts.length]);
 
   const handleFavoriteToggle = async (productId: number) => {
-    if (!isAuthenticated || !user) return;
+    if (!isAuthenticated || !user) {
+      window.dispatchEvent(new CustomEvent('showLoginModal'));
+      return;
+    }
 
     setUpdatingStates(prev => new Map(prev.set(productId, { 
       ...prev.get(productId), 
@@ -186,36 +171,28 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
     
     try {
       const isFavorite = favoriteStates.get(productId) || false;
+      let success = false;
+      
       if (isFavorite) {
-        const { error } = await supabase
-          .from('user_favorites')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('product_id', productId);
-
-        if (error) throw error;
-        setFavoriteStates(prev => new Map(prev.set(productId, false)));
-        console.log(text[language].favoriteRemoved);
-        
-        // 触发全局状态更新
-        window.dispatchEvent(new CustomEvent('favoritesUpdated'));
+        success = await removeFromFavorites(productId);
+        if (success) {
+          setFavoriteStates(prev => new Map(prev.set(productId, false)));
+          console.log(text[language].favoriteRemoved);
+        }
       } else {
-        const { error } = await supabase
-          .from('user_favorites')
-          .insert([{
-            user_id: user.id,
-            product_id: productId
-          }]);
-
-        if (error) throw error;
-        setFavoriteStates(prev => new Map(prev.set(productId, true)));
-        console.log(text[language].favoriteAdded);
-        
+        success = await addToFavorites(productId);
+        if (success) {
+          setFavoriteStates(prev => new Map(prev.set(productId, true)));
+          console.log(text[language].favoriteAdded);
+        }
+      }
+      
+      if (success) {
         // 触发全局状态更新
         window.dispatchEvent(new CustomEvent('favoritesUpdated'));
       }
     } catch (error) {
-      console.error('收藏操作失败:', error);
+      console.error('❌ [COMPARE] Favorite operation failed:', error);
     } finally {
       setUpdatingStates(prev => new Map(prev.set(productId, { 
         ...prev.get(productId), 
@@ -226,7 +203,10 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
   };
 
   const handleShoppingListToggle = async (productId: number) => {
-    if (!isAuthenticated || !user) return;
+    if (!isAuthenticated || !user) {
+      window.dispatchEvent(new CustomEvent('showLoginModal'));
+      return;
+    }
 
     setUpdatingStates(prev => new Map(prev.set(productId, { 
       ...prev.get(productId), 
@@ -236,37 +216,28 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
     
     try {
       const isInShoppingList = shoppingListStates.get(productId) || false;
+      let success = false;
+      
       if (isInShoppingList) {
-        const { error } = await supabase
-          .from('shopping_cart')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('product_id', productId);
-
-        if (error) throw error;
-        setShoppingListStates(prev => new Map(prev.set(productId, false)));
-        console.log(text[language].shoppingListRemoved);
-        
-        // 触发全局状态更新
-        window.dispatchEvent(new CustomEvent('shoppingListUpdated'));
+        success = await removeFromCart(productId);
+        if (success) {
+          setShoppingListStates(prev => new Map(prev.set(productId, false)));
+          console.log(text[language].shoppingListRemoved);
+        }
       } else {
-        const { error } = await supabase
-          .from('shopping_cart')
-          .insert([{
-            user_id: user.id,
-            product_id: productId,
-            quantity: 1
-          }]);
-
-        if (error) throw error;
-        setShoppingListStates(prev => new Map(prev.set(productId, true)));
-        console.log(text[language].shoppingListAdded);
-        
+        success = await addToCart(productId, 1);
+        if (success) {
+          setShoppingListStates(prev => new Map(prev.set(productId, true)));
+          console.log(text[language].shoppingListAdded);
+        }
+      }
+      
+      if (success) {
         // 触发全局状态更新
         window.dispatchEvent(new CustomEvent('shoppingListUpdated'));
       }
     } catch (error) {
-      console.error('购物清单操作失败:', error);
+      console.error('❌ [COMPARE] Shopping cart operation failed:', error);
     } finally {
       setUpdatingStates(prev => new Map(prev.set(productId, { 
         ...prev.get(productId), 
@@ -316,7 +287,10 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
   const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
   const cheapestProduct = matchingProducts.find(p => p.price === minPrice);
   const expensiveProduct = matchingProducts.find(p => p.price === maxPrice);
-  const historicalLow = getHistoricalLow();
+  const historicalLow = useMemo(() => {
+    if (headerSeries.length === 0) return 0;
+    return Math.min(...headerSeries);
+  }, [headerSeries]);
   const isCurrentLowest = minPrice <= historicalLow;
 
   return (
@@ -593,6 +567,9 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
                       </button>
                     ) : (
                       <button
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('showLoginModal'));
+                        }}
                         className={`flex-1 flex items-center justify-center space-x-2 px-3 py-2 rounded-lg font-medium transition-colors bg-primary-100 text-primary-700 hover:bg-primary-200 text-sm ${language === 'zh' ? 'font-chinese' : ''}`}
                       >
                         <LogIn className="w-4 h-4" />
@@ -624,6 +601,9 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
                       </button>
                     ) : (
                       <button
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('showLoginModal'));
+                        }}
                         className={`flex-1 flex items-center justify-center space-x-2 px-3 py-2 rounded-lg font-medium transition-colors bg-primary-100 text-primary-700 hover:bg-primary-200 text-sm ${language === 'zh' ? 'font-chinese' : ''}`}
                       >
                         <LogIn className="w-4 h-4" />
@@ -678,6 +658,10 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
         <h3 className={`text-lg font-semibold mb-4 text-center ${language === 'zh' ? 'font-chinese' : ''}`}>
           {text[language].priceHistory}
         </h3>
+        {/* Smooth curve chart */}
+        <div className="mb-4 overflow-hidden rounded-lg bg-white/40">
+          <PriceHistoryChart prices={headerSeries} height={120} endDate={stableEndDateRef.current} />
+        </div>
         <div className="text-center">
           <div className={`text-sm text-gray-600 mb-2 ${language === 'zh' ? 'font-chinese' : ''}`}>
             {text[language].historicalLow}: ${historicalLow.toFixed(2)}

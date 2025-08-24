@@ -1,10 +1,12 @@
-import { X, Heart, MapPin, Star, Clock, Package, Award, LogIn, ShoppingCart, Navigation, ExternalLink, Plus, Check } from 'lucide-react';
+import { X, Heart, MapPin, Star, Clock, Package, Award, LogIn, ShoppingCart, Navigation, ExternalLink, Plus, Check, Store } from 'lucide-react';
 import { Product } from '../types';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
 import { formatDistanceToNow } from 'date-fns';
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { generateSeededSeries } from '../lib/chartUtils';
+import { PriceHistoryChart } from './PriceHistoryChart';
 
 interface ProductDetailProps {
   product: Product;
@@ -21,6 +23,12 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
     checkIsInCart,
     addToCart,
     removeFromCart,
+    checkIsProductFavorite,
+    addToProductFavorites,
+    removeFromProductFavorites,
+    checkIsStoreFavorite,
+    addToStoreFavorites,
+    removeFromStoreFavorites,
     isLoading
   } = useUser();
   
@@ -28,21 +36,25 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
   
   const isFavorite = checkIsFavorite(product.id);
   const cartStatus = checkIsInCart(product.id);
-  
+  const isProductFavorite = checkIsProductFavorite(product.name_en);
+  const isStoreFavorite = checkIsStoreFavorite(product.supermarket_id);
+
   // Find similar products from other supermarkets
   const similarProducts = products.filter(p => 
     p.id !== product.id && 
     p.name_en.toLowerCase() === product.name_en.toLowerCase()
   ).sort((a, b) => a.price - b.price);
 
-  // Calculate historical low (mock for demo)
-  const getHistoricalLow = () => {
-    const allPrices = [product, ...similarProducts].map(p => p.price);
-    const currentMin = Math.min(...allPrices);
-    return currentMin * (0.8 + Math.random() * 0.15);
-  };
+  // Stable, seeded historical series and low
+  const stableEndDateRef = useRef<Date>(new Date());
+  const priceSeries = useMemo(() => {
+    const seedKey = `prod:${product.id}|${Math.round(product.price * 100)}`;
+    return generateSeededSeries(seedKey, product.price, 90);
+  }, [product.id, product.price]);
 
-  const historicalLow = getHistoricalLow();
+  const historicalLow = useMemo(() => {
+    return Math.min(...priceSeries);
+  }, [priceSeries]);
   const isCurrentLowest = product.price <= historicalLow;
 
   const text = {
@@ -145,6 +157,55 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
       }
     } catch (error) {
       console.error('购物清单操作失败:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleProductFavoriteToggle = async () => {
+    if (!isAuthenticated || !user) {
+      window.dispatchEvent(new CustomEvent('showLoginModal'));
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      if (isProductFavorite) {
+        await removeFromProductFavorites(product.name_en);
+        console.log('商品收藏已移除');
+      } else {
+        await addToProductFavorites({
+          name_en: product.name_en,
+          name_zh: product.name_zh,
+          image: product.image,
+          category: product.category
+        });
+        console.log('商品已添加到收藏');
+      }
+    } catch (error) {
+      console.error('商品收藏操作失败:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleStoreFavoriteToggle = async () => {
+    if (!isAuthenticated || !user) {
+      window.dispatchEvent(new CustomEvent('showLoginModal'));
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      if (isStoreFavorite) {
+        await removeFromStoreFavorites(product.supermarket_id);
+        console.log('店铺收藏已移除');
+      } else {
+        await addToStoreFavorites(product.supermarket_id);
+        console.log('店铺已添加到收藏');
+      }
+    } catch (error) {
+      console.error('店铺收藏操作失败:', error);
     } finally {
       setIsUpdating(false);
     }
@@ -253,6 +314,12 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
               <h4 className={`text-sm font-semibold text-gray-700 mb-2 ${language === 'zh' ? 'font-chinese' : ''}`}>
                 {text[language].priceHistory}
               </h4>
+              {/* Smooth curve chart */}
+              <div className="mb-3 overflow-hidden rounded-lg bg-white/40">
+                {(() => {
+                  return <PriceHistoryChart prices={priceSeries} height={120} endDate={stableEndDateRef.current} />;
+                })()}
+              </div>
               <div className={`text-sm text-gray-600 mb-2 ${language === 'zh' ? 'font-chinese' : ''}`}>
                 {text[language].historicalLow}: ${historicalLow.toFixed(2)}
               </div>
@@ -328,7 +395,71 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
-              {/* Favorite Button */}
+              {/* 单一产品收藏按钮 */}
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={handleProductFavoriteToggle}
+                  disabled={isUpdating || isLoading}
+                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors disabled:opacity-50 ${
+                    isProductFavorite
+                      ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  } ${language === 'zh' ? 'font-chinese' : ''}`}
+                >
+                  {isUpdating ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
+                  ) : (
+                    <Heart className={`w-5 h-5 ${isProductFavorite ? 'fill-current' : ''}`} />
+                  )}
+                  <span>{isProductFavorite ? '取消单一产品收藏' : '单一产品收藏'}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('showLoginModal'));
+                  }}
+                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors bg-purple-100 text-purple-700 hover:bg-purple-200 ${language === 'zh' ? 'font-chinese' : ''}`}
+                >
+                  <Heart className="w-5 h-5" />
+                  <span>登录后收藏（单一产品）</span>
+                </button>
+              )}
+
+              {/* 店铺产品收藏按钮 */}
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={handleStoreFavoriteToggle}
+                  disabled={isUpdating || isLoading}
+                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors disabled:opacity-50 ${
+                    isStoreFavorite
+                      ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  } ${language === 'zh' ? 'font-chinese' : ''}`}
+                >
+                  {isUpdating ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
+                  ) : (
+                    <Store className={`w-5 h-5 ${isStoreFavorite ? 'fill-current' : ''}`} />
+                  )}
+                  <span>{isStoreFavorite ? '取消店铺产品收藏' : '店铺产品收藏'}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('showLoginModal'));
+                  }}
+                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200 ${language === 'zh' ? 'font-chinese' : ''}`}
+                >
+                  <Store className="w-5 h-5" />
+                  <span>登录后收藏（店铺产品）</span>
+                </button>
+              )}
+
+              {/* Favorite Button (Product-specific) */}
               {isAuthenticated ? (
                 <button
                   onClick={handleFavoriteToggle}
@@ -350,7 +481,9 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
                 </button>
               ) : (
                 <button
-                  onClick={() => {/* 可以在这里触发登录模态框 */}}
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('showLoginModal'));
+                  }}
                   className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors bg-primary-100 text-primary-700 hover:bg-primary-200 ${language === 'zh' ? 'font-chinese' : ''}`}
                 >
                   <LogIn className="w-5 h-5" />
@@ -382,7 +515,9 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
                 </button>
               ) : (
                 <button
-                  onClick={() => {/* 可以在这里触发登录模态框 */}}
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('showLoginModal'));
+                  }}
                   className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors bg-primary-100 text-primary-700 hover:bg-primary-200 ${language === 'zh' ? 'font-chinese' : ''}`}
                 >
                   <LogIn className="w-5 h-5" />

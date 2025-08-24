@@ -1,5 +1,8 @@
-import { ArrowLeft, ShoppingCart, TrendingDown, MapPin, Clock, Star, Zap, TrendingUp } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, TrendingDown, MapPin, Clock, Star, Zap, TrendingUp, Heart } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useUser } from '../contexts/UserContext';
+import { useState } from 'react';
 import { Product } from '../types';
 
 interface SubCategoryViewProps {
@@ -10,6 +13,9 @@ interface SubCategoryViewProps {
 
 export function SubCategoryView({ category, onBack, onProductNameClick }: SubCategoryViewProps) {
   const { language, products } = useApp();
+  const { user, isAuthenticated } = useAuth();
+  const { checkIsProductFavorite, addToProductFavorites, removeFromProductFavorites, isLoading } = useUser();
+  const [updating, setUpdating] = useState<Set<string>>(new Set());
 
   const text = {
     en: {
@@ -116,6 +122,40 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
 
   const uniqueProducts = getUniqueProducts();
 
+  const handleToggleProductFavorite = async (
+    productNameEn: string,
+    productNameZh: string,
+    image: string
+  ) => {
+    if (!isAuthenticated || !user) {
+      window.dispatchEvent(new CustomEvent('showLoginModal'));
+      return;
+    }
+    if (updating.has(productNameEn)) return;
+    setUpdating(prev => new Set(prev.add(productNameEn)));
+    try {
+      const isFav = checkIsProductFavorite(productNameEn);
+      if (isFav) {
+        await removeFromProductFavorites(productNameEn);
+      } else {
+        await addToProductFavorites({
+          name_en: productNameEn,
+          name_zh: productNameZh,
+          image,
+          category
+        });
+      }
+    } catch (error) {
+      console.error('商品收藏操作失败:', error);
+    } finally {
+      setUpdating(prev => {
+        const next = new Set(prev);
+        next.delete(productNameEn);
+        return next;
+      });
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
@@ -190,6 +230,21 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
                           {productGroup.products.length} {text[language].stores}
                         </div>
                       </div>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleToggleProductFavorite(productGroup.name_en, productGroup.name_zh, productGroup.image); }}
+                        disabled={updating.has(productGroup.name_en) || isLoading}
+                        className={`p-2 rounded-full transition-colors ${
+                          checkIsProductFavorite(productGroup.name_en) ? 'bg-purple-100 text-purple-700 hover:bg-purple-200' : 'bg-white text-gray-400 hover:text-purple-600'
+                        }`}
+                        title={checkIsProductFavorite(productGroup.name_en) ? '取消单一产品收藏' : '单一产品收藏'}
+                      >
+                        {updating.has(productGroup.name_en) ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                        ) : (
+                          <Heart className={`w-4 h-4 ${checkIsProductFavorite(productGroup.name_en) ? 'fill-current' : ''}`} />
+                        )}
+                      </button>
                     </div>
 
                     {/* Lowest Price Section */}

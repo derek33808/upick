@@ -11,7 +11,7 @@ interface UserProfileProps {
 
 export function UserProfile({ isOpen, onClose }: UserProfileProps) {
   const { language } = useApp();
-  const { user, updateProfile, logout, error, clearError, isLoading } = useAuth();
+  const { user, updateProfile, logout, error, clearError, setError, isLoading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
     name: user?.name || '',

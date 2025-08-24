@@ -16,6 +16,8 @@ import { MapView } from './components/MapView';
 import { FavoritesView } from './components/FavoritesView';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { UserProfile } from './components/UserProfile';
+import { LoginValidationTester } from './components/LoginValidationTester';
+import { FunctionalityTest } from './components/FunctionalityTest';
 import { Product } from './types';
 
 function AppContent() {
@@ -145,6 +147,18 @@ function AppContent() {
         return (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
             <MapView />
+          </div>
+        );
+      case 'validation':
+        return (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+            <LoginValidationTester />
+          </div>
+        );
+      case 'test':
+        return (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+            <FunctionalityTest />
           </div>
         );
       default:

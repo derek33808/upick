@@ -27,6 +27,43 @@ export interface UserFavorite {
   };
 }
 
+// 新增：商品收藏（不关联特定店铺）
+export interface ProductFavorite {
+  id: number;
+  user_id: string;
+  product_name_en: string;
+  product_name_zh: string;
+  product_image: string;
+  product_category: string;
+  created_at: string;
+  last_viewed_at?: string;
+  // 用于快速查看价格变化
+  price_history?: Array<{
+    date: string;
+    min_price: number;
+    max_price: number;
+    avg_price: number;
+    store_count: number;
+  }>;
+}
+
+// 新增：店铺收藏
+export interface StoreFavorite {
+  id: number;
+  user_id: string;
+  supermarket_id: number;
+  created_at: string;
+  supermarket?: {
+    id: number;
+    name_en: string;
+    name_zh: string;
+    location: string;
+    logo_url: string;
+    latitude: number;
+    longitude: number;
+  };
+}
+
 export interface CartItem {
   id: number;
   user_id: string;
