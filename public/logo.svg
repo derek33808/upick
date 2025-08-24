@@ -1,0 +1,27 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#48b04a"/>
+  
+  <!-- Main U shape with cart feeling -->
+  <path 
+    d="M128 85v240c0 44 36 80 80 80h96c44 0 80-36 80-80V85M128 85h32M352 85h32" 
+    stroke="white" 
+    stroke-width="24" 
+    stroke-linecap="round"
+    fill="none"
+  />
+  
+  <!-- Cart wheels -->
+  <circle cx="192" cy="427" r="24" fill="white"/>
+  <circle cx="320" cy="427" r="24" fill="white"/>
+  
+  <!-- Inner decorative lines -->
+  <path 
+    d="M160 170v140c0 22 18 40 40 40h72c22 0 40-18 40-40V170" 
+    stroke="white" 
+    stroke-width="12" 
+    stroke-linecap="round"
+    fill="none"
+    opacity="0.7"
+  />
+</svg>

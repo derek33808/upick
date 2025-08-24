@@ -1,0 +1,16 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景圆形 -->
+  <circle cx="60" cy="60" r="60" fill="#48b04a"/>
+  
+  <!-- 简洁的U字形状 -->
+  <path 
+    d="M30 20 L30 65 C30 76 39 85 50 85 L70 85 C81 85 90 76 90 65 L90 20" 
+    stroke="white" 
+    stroke-width="7" 
+    stroke-linecap="round"
+    fill="none"
+  />
+  
+  <!-- 购物车轮子 -->
+  <circle cx="42" cy="95" r="6" fill="white"/>
+</svg>
