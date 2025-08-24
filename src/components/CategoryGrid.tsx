@@ -198,7 +198,14 @@ export function CategoryGrid({ onCategoryClick }: CategoryGridProps) {
                     return (
                       <div key={s.id} className="flex items-center justify-between p-3 rounded-xl border hover:shadow-sm">
                         <div className="flex items-center space-x-3">
-                          <img src={s.logo_url} className="w-8 h-8 rounded-full object-cover"/>
+                          <img 
+                            src={s.logo_url} 
+                            alt={language==='en'? s.name_en : s.name_zh}
+                            className="w-8 h-8 rounded-full object-cover bg-gradient-to-br from-blue-500 to-purple-600"
+                            onError={(e) => {
+                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZGllbnQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgo8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM0I4MkY2O3N0b3Atb3BhY2l0eToxIiAvPgo8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4QjVDRjY7c3RvcC1vcGFjaXR5OjEiIC8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSJ1cmwoI2dyYWRpZW50KSIgcng9IjE2Ii8+Cjxzdmcgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiB4PSI4IiB5PSI4IiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj4KPHBhdGggZD0iTTIgN2MwIC42MDMuNjkgMSAxLjIyNyAxYTEuMSAxLjEgMCAwIDAgMS4wNzgtLjYgNC44IDAgMCAwIDEuMDMtLjhMOCAzTTIwIDdIOHYwMy4zODYtLjg2NmEuNS41IDAgMCAxIC41LS41SDl2NC42YTIgMiAwIDEgMSA0IDB2LTJNOSA3LjV2NCIvPgo8L3N2Zz4KPC9zdmc+';
+                            }}
+                          />
                           <div>
                             <div className="font-medium text-gray-900">{language==='en'? s.name_en : s.name_zh}</div>
                             <div className="text-xs text-gray-500">{s.location}</div>
