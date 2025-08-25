@@ -2,6 +2,7 @@ import { Heart, MapPin, Clock, Star } from 'lucide-react';
 import { Product } from '../types';
 import { useApp } from '../contexts/AppContext';
 import { formatDistanceToNow } from 'date-fns';
+import { generateProductPlaceholder } from '../lib/imageUtils';
 
 interface ProductCardProps {
   product: Product;
@@ -50,7 +51,7 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
             e.currentTarget.style.opacity = '1';
           }}
           onError={(e) => {
-            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzlmYTJhNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+            e.currentTarget.src = generateProductPlaceholder(product.id, 300);
           }}
           style={{ opacity: 0, transition: 'opacity 0.3s ease-in-out' }}
         />

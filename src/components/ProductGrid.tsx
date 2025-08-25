@@ -1,9 +1,10 @@
-import { useMemo, useState, useEffect } from 'react';
-import { Package, MapPin, Star, Heart, Zap, ShoppingCart, Plus, Check, Store } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Package, MapPin, Star, Heart, Plus, Check, Store } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
 import { Product } from '../types';
+import { generateProductPlaceholder } from '../lib/imageUtils';
 
 interface ProductGridProps {
   onProductClick: (product: Product) => void;
@@ -20,17 +21,16 @@ export function ProductGrid({ onProductClick }: ProductGridProps) {
     sortBy,
   } = useApp();
   const { user, isAuthenticated } = useAuth();
-  const { 
-    checkIsFavorite, 
-    addToFavorites, 
-    removeFromFavorites, 
+    const { 
+    checkIsFavorite,
+    addToFavorites,
+    removeFromFavorites,
     checkIsInCart,
     addToCart,
     removeFromCart,
     checkIsProductFavorite,
     addToProductFavorites,
-    removeFromProductFavorites,
-    isLoading: userLoading 
+    removeFromProductFavorites
   } = useUser();
   const [updatingFavorites, setUpdatingFavorites] = useState<Set<number>>(new Set());
   const [updatingCart, setUpdatingCart] = useState<Set<number>>(new Set());
@@ -253,7 +253,7 @@ export function ProductGrid({ onProductClick }: ProductGridProps) {
                   e.currentTarget.style.opacity = '1';
                 }}
                 onError={(e) => {
-                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzlmYTJhNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+                  e.currentTarget.src = generateProductPlaceholder(product.id, 300);
                 }}
                 style={{ opacity: 0, transition: 'opacity 0.3s ease-in-out' }}
               />

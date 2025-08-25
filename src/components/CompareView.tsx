@@ -3,6 +3,7 @@ import { BarChart3, TrendingUp, TrendingDown, Minus, Star, MapPin, Clock, Zap, T
 import { useApp } from '../contexts/AppContext';
 import { Product } from '../types';
 import { formatDistanceToNow } from 'date-fns';
+import { generateProductPlaceholder } from '../lib/imageUtils';
 
 export function CompareView() {
   const { language, products, supermarkets } = useApp();
@@ -149,7 +150,7 @@ export function CompareView() {
                           e.currentTarget.style.opacity = '1';
                         }}
                         onError={(e) => {
-                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5ZmEyYTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
+                          e.currentTarget.src = generateProductPlaceholder(productName, 96);
                         }}
                         style={{ opacity: 0, transition: 'opacity 0.3s ease-in-out' }}
                       />

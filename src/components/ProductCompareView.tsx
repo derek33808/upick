@@ -6,6 +6,7 @@ import { Product } from '../types';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { PriceHistoryChart } from './PriceHistoryChart';
 import { generateSeededSeries } from '../lib/chartUtils';
+import { generateProductPlaceholder } from '../lib/imageUtils';
 
 interface ProductCompareViewProps {
   productName: string;
@@ -316,7 +317,7 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
             alt={language === 'en' ? matchingProducts[0].name_en : matchingProducts[0].name_zh}
             className="w-24 h-24 object-cover rounded-xl shadow-lg mx-auto sm:mx-0"
             onError={(e) => {
-              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5ZmEyYTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
+              e.currentTarget.src = generateProductPlaceholder(productName, 96);
             }}
           />
           <div className="text-center sm:text-left">

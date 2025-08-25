@@ -1,4 +1,4 @@
-import { X, Heart, MapPin, Star, Clock, Package, Award, LogIn, ShoppingCart, Navigation, ExternalLink, Plus, Check, Store } from 'lucide-react';
+import { X, Heart, MapPin, Star, Clock, Package, Award, LogIn, Navigation, Plus, Check, Store } from 'lucide-react';
 import { Product } from '../types';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,6 +7,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useMemo, useRef, useState } from 'react';
 import { generateSeededSeries } from '../lib/chartUtils';
 import { PriceHistoryChart } from './PriceHistoryChart';
+import { generateProductPlaceholder } from '../lib/imageUtils';
 
 interface ProductDetailProps {
   product: Product;
@@ -256,7 +257,7 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
                 e.currentTarget.style.opacity = '1';
               }}
               onError={(e) => {
-                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjI2NCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzlmYTJhNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+                e.currentTarget.src = generateProductPlaceholder(product.id, 300);
               }}
               style={{ opacity: 0, transition: 'opacity 0.3s ease-in-out' }}
             />

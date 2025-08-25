@@ -6,6 +6,7 @@ import { useApp } from '../contexts/AppContext';
 import { PriceHistoryChart } from './PriceHistoryChart';
 import { generateSeededSeries } from '../lib/chartUtils';
 import { StoreDetailModal } from './StoreDetailModal';
+import { generateProductPlaceholder, generateStorePlaceholder } from '../lib/imageUtils';
 
 export function FavoritesView() {
   const { user, isAuthenticated } = useAuth();
@@ -298,7 +299,7 @@ export function FavoritesView() {
                           alt={language === 'en' ? favorite.product_name_en : favorite.product_name_zh}
                           className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-lg bg-gray-100"
                     onError={(e) => {
-                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yOCAzMkMyOCAyOS43OTA5IDI5Ljc5MDkgMjggMzIgMjhIMzZDMzguMjA5MSAyOCA0MCAyOS43OTA5IDQwIDMyVjM2QzQwIDM4LjIwOTEgMzguMjA5MSA0MCAzNiA0MEgzMkMyOS43OTA5IDQwIDI4IDM4LjIwOTEgMjggMzZWMzJaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik00MiA0NEM0MiA0MS43OTA5IDQzLjc5MDkgNDAgNDYgNDBINTBDNTIuMjA5MSA0MCA1NCA0MS43OTA5IDU0IDQ0VjQ4QzU0IDUwLjIwOTEgNTIuMjA5MSA1MiA1MCA1Mkg0NkM0My43OTA5IDUyIDQyIDUwLjIwOTEgNDIgNDhWNDRaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0yNiA0NkMzMS41MjI5IDQ2IDM2IDQxLjUyMjkgMzYgMzZDMzYgMzAuNDc3MSAzMS41MjI5IDI2IDI2IDI2QzIwLjQ3NzEgMjYgMTYgMzAuNDc3MSAxNiAzNkMxNiA0MS41MjI5IDIwLjQ3NzEgNDYgMjYgNDZaIiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPgo8L3N2Zz4K';
+                            e.currentTarget.src = generateProductPlaceholder(favorite.product_name_en, 80);
                           }}
                         />
                       </div>
@@ -381,7 +382,7 @@ export function FavoritesView() {
                                       alt={product.supermarket?.name_en}
                                       className="w-6 h-6 md:w-8 md:h-8 rounded-full object-cover flex-shrink-0"
                                       onError={(e) => {
-                                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNiA4SDE4VjI0SDE2VjhaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik04IDE2VjE4SDI0VjE2SDhaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPgo=';
+                                        e.currentTarget.src = generateStorePlaceholder(product.supermarket?.id || 0, 32);
                                       }}
                                     />
                                     <div className="min-w-0 flex-1">
@@ -462,7 +463,7 @@ export function FavoritesView() {
                         alt={language === 'en' ? favorite.product?.name_en : favorite.product?.name_zh}
                         className="w-16 h-16 object-cover rounded-lg"
                         onError={(e) => {
-                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0icHJvZHVjdEdyYWRpZW50IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzEwQjk4MTtzdG9wLW9wYWNpdHk6MSIgLz4KPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMzNCMzZCO3N0b3Atb3BhY2l0eToxIiAvPgo8L2xpbmVhckdyYWRpZW50Pgo8L2RlZnM+CjxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgZmlsbD0idXJsKCNwcm9kdWN0R3JhZGllbnQpIiByeD0iOCIvPgo8c3ZnIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgeD0iMTYiIHk9IjE2IiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj4KPHA+YXRoIGQ9Ik0yMiAxMmgtNGwtMy05LTMgOWgtNGwyIDVoMTB6Ii8+CjxjaXJjbGUgY3g9IjEyIiBjeT0iNSIgcj0iMyIvPgo8L3N2Zz4KPC9zdmc+Cg==';
+                          e.currentTarget.src = generateProductPlaceholder(favorite.id || 0, 64);
                         }}
                       />
                       <div className="flex-1 min-w-0">
@@ -523,7 +524,7 @@ export function FavoritesView() {
                         alt={language === 'en' ? favorite.supermarket?.name_en : favorite.supermarket?.name_zh}
                         className="w-20 h-20 object-cover rounded-lg"
                         onError={(e) => {
-                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZGllbnQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgo8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM0I4MkY2O3N0b3Atb3BhY2l0eToxIiAvPgo8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4QjVDRjY7c3RvcC1vcGFjaXR5OjEiIC8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2dyYWRpZW50KSIgcng9IjgiLz4KPHN2ZyB4PSIyNCIgeT0iMjQiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CjxwYXRoIGQ9Im0zIDlsOSA5bTAtMUw5IDEwbS41IDNsMS41IDEuNUwxNy0xMCIvPgo8cGF0aCBkPSJNMjAuNSAxNC41YzAtMS4zOC0uNS0yLTEuNS0ycy0xLjUuNjItMS41IDJBNCwgNCAwIDEgMSAyMC41IDE0LjVaIi8+CjxwYXRoIGQ9Ik0yLjk3IDExLjUiLz4KPHBhdGggZD0iTTUgMTUuNSIvPgo8cGF0aCBkPSJNOSAxOSIvPgo8cGF0aCBkPSJNMTIgMTQiLz4KPHN0b3JlIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CjxwYXRoIGQ9Im0yIDdjMCAuNjAzLjY5IDEgMS4yMjcgMWExLjEgMS4xIDAgMCAwIDEuMDc4LS42IDQuOCAwIDAgMCAxLjAzLS44TDggN00yMCA3SDh2MDMuMzg2LS44NjZhLjUuNSAwIDAgMSAuNS0uNUg5djQuNmEyIDIgMCAxIDEgNCAwdi0yTTkgNy41djQiLz4KPHA+CiPCUUhMUCBsaW5lPSdqdWluJz4KPC9zdG9yZT4KPC9zdmc+Cjx0ZXh0IHg9IjQwIiB5PSI2NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9ImJvbGQiPkxPR088L3RleHQ+Cjwvc3ZnPgo=';
+                          e.currentTarget.src = generateStorePlaceholder(favorite.supermarket?.id || 0, 80);
                         }}
                       />
                       <div className="flex-1 min-w-0">

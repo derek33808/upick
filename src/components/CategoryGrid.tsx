@@ -2,7 +2,7 @@ import { Carrot, Apple, Beef, Milk, Egg, Store, Heart } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 
 interface CategoryGridProps {
   onCategoryClick: (category: string) => void;
@@ -48,10 +48,6 @@ const categories = [
 
 export function CategoryGrid({ onCategoryClick }: CategoryGridProps) {
   const { language, products } = useApp();
-  const { user, isAuthenticated } = useAuth();
-  const { addToStoreFavorites, removeFromStoreFavorites, checkIsStoreFavorite, refreshStoreFavorites } = useUser();
-  const [updating, setUpdating] = useState<Set<number>>(new Set());
-  const [localSaved, setLocalSaved] = useState<Set<number>>(new Set());
 
   const text = {
     en: {
@@ -194,7 +190,6 @@ export function CategoryGrid({ onCategoryClick }: CategoryGridProps) {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {regionStores.map((s: any) => {
-                    const isFav = checkIsStoreFavorite(s.id) || localSaved.has(s.id);
                     return (
                       <div key={s.id} className="flex items-center justify-between p-3 rounded-xl border hover:shadow-sm">
                         <div className="flex items-center space-x-3">
@@ -284,29 +279,24 @@ function StoreSaveButton({ storeId, language }: { storeId: number; language: 'en
     }
   };
 
-  // 显示登录状态用于调试
-  const loginStatus = isAuthenticated ? `已登录:${user?.email || 'unknown'}` : '未登录';
   
   return (
     <button
       type="button"
       onClick={handleClick}
-      className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${
+      className={`p-2 rounded-full transition-all duration-200 ${
         saved 
-          ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-2 border-blue-300' 
-          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-gray-300'
+          ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
       } ${
         saving 
           ? 'opacity-50 cursor-not-allowed animate-pulse' 
-          : 'hover:scale-105 active:scale-95'
+          : 'hover:scale-110 active:scale-95'
       }`}
       disabled={saving}
-      title={`Store ID: ${storeId} | Saved: ${saved} | Saving: ${saving} | ${loginStatus}`}
+      title={saved ? (language === 'en' ? 'Remove from favorites' : '取消收藏') : (language === 'en' ? 'Add to favorites' : '添加收藏')}
     >
-      <div className="flex items-center space-x-1">
-        <Heart className={`w-4 h-4 transition-all ${saved ? 'fill-current text-blue-600 scale-110' : 'text-gray-500'}`} />
-        <span>{saving ? '...' : (saved ? (language === 'en' ? 'Saved!' : '已收藏!') : (language === 'en' ? 'Save' : '收藏'))}</span>
-      </div>
+      <Heart className={`w-5 h-5 transition-all ${saved ? 'fill-current text-blue-600' : 'text-gray-500'}`} />
     </button>
   );
 }

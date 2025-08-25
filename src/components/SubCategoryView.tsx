@@ -1,9 +1,10 @@
-import { ArrowLeft, ShoppingCart, TrendingDown, MapPin, Clock, Star, Zap, TrendingUp, Heart } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, TrendingDown, Clock, Zap, TrendingUp, Heart } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
 import { useState } from 'react';
 import { Product } from '../types';
+import { generateProductPlaceholder } from '../lib/imageUtils';
 
 interface SubCategoryViewProps {
   category: string;
@@ -193,8 +194,8 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
           {uniqueProducts.map((productGroup, index) => {
             const historicalLow = getHistoricalLow(productGroup.name_en);
             const isCurrentLowest = productGroup.minPrice <= historicalLow;
-            const mostRecentUpdate = Math.max(...productGroup.lowestPriceStores.map(p => new Date(p.updated_at).getTime()));
-            const hasSpecialOffers = productGroup.lowestPriceStores.some(p => p.isSpecial);
+            const mostRecentUpdate = Math.max(...productGroup.lowestPriceStores.map((p: Product) => new Date(p.updated_at).getTime()));
+            const hasSpecialOffers = productGroup.lowestPriceStores.some((p: Product) => p.isSpecial);
             
             return (
               <div
@@ -213,7 +214,20 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
                           className="w-16 h-16 lg:w-20 lg:h-20 object-cover rounded-xl shadow-md"
                           loading="lazy"
                           onError={(e) => {
-                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5ZmEyYTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
+                            console.log(`[SubCategoryView] Image failed to load for ${productGroup.name_en}, applying fallback`);
+                            e.currentTarget.src = generateProductPlaceholder(productGroup.name_en, 80);
+                          }}
+                          onLoad={(e) => {
+                            console.log(`[SubCategoryView] Image loaded successfully for ${productGroup.name_en}`);
+                          }}
+                          onAbort={(e) => {
+                            console.log(`[SubCategoryView] Image load aborted for ${productGroup.name_en}, applying fallback`);
+                            e.currentTarget.src = generateProductPlaceholder(productGroup.name_en, 80);
+                          }}
+                          style={{ 
+                            backgroundImage: `url(${generateProductPlaceholder(productGroup.name_en, 80)})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center'
                           }}
                         />
                         {hasSpecialOffers && (

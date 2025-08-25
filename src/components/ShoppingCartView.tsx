@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ShoppingCart, Plus, Minus, Trash2, Router as Route, MapPin, Navigation, Clock, DollarSign, Star, Package } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import { useApp } from '../contexts/AppContext';
+import { generateProductPlaceholder } from '../lib/imageUtils';
 
 export function ShoppingCartView() {
   const { language } = useApp();
@@ -251,7 +252,7 @@ export function ShoppingCartView() {
                         alt={language === 'en' ? item.product?.name_en : item.product?.name_zh}
                         className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
                         onError={(e) => {
-                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iIzlmYTJhNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+                          e.currentTarget.src = generateProductPlaceholder(item.product?.id || 0, 64);
                         }}
                       />
                       
@@ -303,7 +304,7 @@ export function ShoppingCartView() {
                       alt={language === 'en' ? item.product?.name_en : item.product?.name_zh}
                       className="w-16 h-16 object-cover rounded-lg"
                       onError={(e) => {
-                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iIzlmYTJhNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+                        e.currentTarget.src = generateProductPlaceholder(item.product?.id || 0, 64);
                       }}
                     />
                     
