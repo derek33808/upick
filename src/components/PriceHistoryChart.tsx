@@ -1,4 +1,3 @@
-import React from 'react';
 
 interface PriceHistoryChartProps {
   prices: number[];
@@ -19,10 +18,10 @@ export function PriceHistoryChart({
 }: PriceHistoryChartProps) {
   // 响应式padding，手机端更紧凑
   const isMobile = width < 480;
-  const paddingLeft = isMobile ? 40 : 48;
-  const paddingRight = isMobile ? 16 : 20;
-  const paddingTop = isMobile ? 20 : 16;
-  const paddingBottom = isMobile ? 44 : 36;
+  const paddingLeft = isMobile ? 45 : 48;
+  const paddingRight = isMobile ? 20 : 20;
+  const paddingTop = isMobile ? 24 : 20;
+  const paddingBottom = isMobile ? 48 : 40;
 
   const min = Math.min(...prices);
   const max = Math.max(...prices);
@@ -90,15 +89,15 @@ export function PriceHistoryChart({
       {yTicks.map((y, i) => (
         <g key={`y-${i}`}>
           <line x1={paddingLeft} x2={paddingLeft + innerWidth} y1={y} y2={y} stroke="url(#grid-fade)" strokeWidth={1} />
-          <text x={paddingLeft - 6} y={y + 4} textAnchor="end" fontSize={isMobile ? 11 : 10} fill="#6b7280" fontWeight="500">${yValues[i].toFixed(2)}</text>
+          <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize={isMobile ? 12 : 11} fill="#4b5563" fontWeight="600">${yValues[i].toFixed(2)}</text>
         </g>
       ))}
 
       {/* X grid + labels */}
       {xTickIdx.map((idx, i) => (
         <g key={`x-${i}`}>
-          <line x1={points[idx][0]} x2={points[idx][0]} y1={paddingTop} y2={paddingTop + innerHeight} stroke="#e5e7eb" strokeOpacity={0.4} strokeWidth={1} />
-          <text x={points[idx][0]} y={paddingTop + innerHeight + 14} textAnchor="middle" fontSize={isMobile ? 11 : 10} fill="#6b7280" fontWeight="500">
+          <line x1={points[idx][0]} x2={points[idx][0]} y1={paddingTop} y2={paddingTop + innerHeight} stroke="#e5e7eb" strokeOpacity={0.5} strokeWidth={1} />
+          <text x={points[idx][0]} y={paddingTop + innerHeight + 16} textAnchor="middle" fontSize={isMobile ? 12 : 11} fill="#4b5563" fontWeight="600">
             {formatDate(dateForIndex(idx))}
           </text>
         </g>
@@ -110,18 +109,18 @@ export function PriceHistoryChart({
 
       {/* Area fill and line */}
       <path d={areaPath} fill="url(#price-gradient)" />
-      <path d={linePath} fill="none" stroke={color} strokeWidth={2} />
+      <path d={linePath} fill="none" stroke={color} strokeWidth={isMobile ? 3 : 2.5} />
 
       {/* Min/Max markers with labels */}
       <g>
-        <circle cx={maxX} cy={maxY} r={isMobile ? 4 : 3.5} fill={color} stroke="#fff" strokeWidth={1} />
-        <rect x={maxLabelAnchor==='end'? maxLabelX-38 : maxLabelX-2} y={maxLabelY-10} width={40} height={isMobile ? 16 : 14} rx={3} fill="#ffffff" opacity={0.9} />
-        <text x={maxLabelX} y={maxLabelY} textAnchor={maxLabelAnchor} fontSize={isMobile ? 11 : 10} fill="#111827" fontWeight="600">${max.toFixed(2)}</text>
+        <circle cx={maxX} cy={maxY} r={isMobile ? 5 : 4.5} fill={color} stroke="#fff" strokeWidth={2} />
+        <rect x={maxLabelAnchor==='end'? maxLabelX-42 : maxLabelX-2} y={maxLabelY-12} width={44} height={isMobile ? 18 : 16} rx={4} fill="#ffffff" opacity={0.95} stroke="#e5e7eb" strokeWidth={1} />
+        <text x={maxLabelX} y={maxLabelY} textAnchor={maxLabelAnchor} fontSize={isMobile ? 12 : 11} fill="#111827" fontWeight="600">${max.toFixed(2)}</text>
       </g>
       <g>
-        <circle cx={minX} cy={minY} r={isMobile ? 4 : 3.5} fill={color} stroke="#fff" strokeWidth={1} />
-        <rect x={minLabelAnchor==='end'? minLabelX-38 : minLabelX-2} y={minLabelY-10} width={40} height={isMobile ? 16 : 14} rx={3} fill="#ffffff" opacity={0.9} />
-        <text x={minLabelX} y={minLabelY} textAnchor={minLabelAnchor} fontSize={isMobile ? 11 : 10} fill="#111827" fontWeight="600">${min.toFixed(2)}</text>
+        <circle cx={minX} cy={minY} r={isMobile ? 5 : 4.5} fill={color} stroke="#fff" strokeWidth={2} />
+        <rect x={minLabelAnchor==='end'? minLabelX-42 : minLabelX-2} y={minLabelY-12} width={44} height={isMobile ? 18 : 16} rx={4} fill="#ffffff" opacity={0.95} stroke="#e5e7eb" strokeWidth={1} />
+        <text x={minLabelX} y={minLabelY} textAnchor={minLabelAnchor} fontSize={isMobile ? 12 : 11} fill="#111827" fontWeight="600">${min.toFixed(2)}</text>
       </g>
     </svg>
   );

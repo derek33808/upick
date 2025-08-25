@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, MapPin, Phone, Clock, Star, ShoppingCart, TrendingUp, Users } from 'lucide-react';
+import { generateProductPlaceholder, generateStorePlaceholder } from '../lib/imageUtils';
 
 interface StoreDetailModalProps {
   isOpen: boolean;
@@ -48,7 +49,7 @@ export function StoreDetailModal({ isOpen, onClose, store, storeProducts, langua
                 alt={store.name_en}
                 className="w-12 h-12 rounded-lg object-cover"
                 onError={(e) => {
-                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZGllbnQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgo8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM0I4MkY2O3N0b3Atb3BhY2l0eToxIiAvPgo8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4QjVDRjY7c3RvcC1vcGFjaXR5OjEiIC8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSJ1cmwoI2dyYWRpZW50KSIgcng9IjgiIi8+Cjxzdmcgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiB4PSIxMiIgeT0iMTIiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgo8cGF0aCBkPSJNMiA3YzAgLjYwMy42OSAxIDEuMjI3IDFhMS4xIDEuMSAwIDAgMCAxLjA3OC0uNiA0LjggMCAwIDAgMS4wMy0uOEw4IDNNMjAgN0g4djAzLjM4Ni0uODY2YS41LjUgMCAwIDEgLjUtLjVIQXY0LjZhMiAyIDAgMSAxIDQgMHYtMk05IDcuNXY0Ii8+Cjwvc3ZnPgo8L3N2Zz4K';
+                  e.currentTarget.src = generateStorePlaceholder(store.id, 48);
                 }}
               />
             </div>
@@ -153,11 +154,15 @@ export function StoreDetailModal({ isOpen, onClose, store, storeProducts, langua
                       {products.map((product) => (
                         <div key={product.id} className="flex items-center space-x-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
                           <img 
-                            src={product.image_url} 
-                            alt={product.name_en}
+                            src={product.image || product.image_url} 
+                            alt={language === 'zh' ? product.name_zh : product.name_en}
                             className="w-12 h-12 rounded-lg object-cover bg-gradient-to-br from-green-100 to-blue-100"
+                            onLoad={() => {
+                              console.log(`✅ [StoreDetailModal] Image loaded successfully for product ${product.id}: ${product.name_en}`);
+                            }}
                             onError={(e) => {
-                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZGllbnQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgo8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM0I4MkY2O3N0b3Atb3BhY2l0eToxIiAvPgo8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4QjVDRjY7c3RvcC1vcGFjaXR5OjEiIC8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSJ1cmwoI2dyYWRpZW50KSIgcng9IjgiIi8+Cjxzdmcgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiB4PSIxMiIgeT0iMTIiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgo8cGF0aCBkPSJNMTIgMkM2LjQ4IDIgMiA2LjQ4IDIgMTJzNC40OCAxMCAxMCAxMCAxMC00LjQ4IDEwLTEwUzE3LjUyIDIgMTIgMnptMCAxOGMtNC40MSAwLTgtMy41OS04LTggczMuNTktOCA4LTggOCAzLjU5IDggOC0zLjU5IDgtOCA4eiIvPgo8cGF0aCBkPSJNMTIgNkM4LjY5IDYgNiA4LjY5IDYgMTJzMi42OSA2IDYgNiA2LTIuNjkgNi02LTIuNjkgNi02IDZ6Ii8+Cjwvc3ZnPgo8L3N2Zz4K';
+                              console.warn(`❌ [StoreDetailModal] Image failed to load for product ${product.id}: ${product.name_en}, src: ${product.image || product.image_url}`);
+                              e.currentTarget.src = generateProductPlaceholder(product.id, 48);
                             }}
                           />
                           

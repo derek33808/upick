@@ -98,7 +98,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     for (const account of demoAccounts) {
       try {
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email: account.email,
           password: account.password,
           options: {
@@ -300,7 +300,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setFavorites(convertedFavorites);
       } else {
         const favoritesData = await UserService.getUserFavorites(user.id.toString());
-        setFavorites(favoritesData);
+      setFavorites(favoritesData);
       }
     } catch (error) {
       console.error('❌ [USER] Refresh favorites failed:', error);
@@ -397,7 +397,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (result.success) {
         setCart(prev => prev.filter(item => item.product_id !== productId));
         if (!isDemoMode) {
-          await updateCartStats();
+        await updateCartStats();
         } else {
           // Update demo cart stats
           const currentCart = cart.filter(item => item.product_id !== productId);
@@ -491,8 +491,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
       } else {
         const cartData = await UserService.getUserCart(user.id.toString());
-        setCart(cartData);
-        await updateCartStats();
+      setCart(cartData);
+      await updateCartStats();
       }
     } catch (error) {
       console.error('❌ [USER] Refresh cart failed:', error);
@@ -755,7 +755,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     try {
       // 总是从演示数据中读取，确保兼容性
       const demoFavorites = DemoStoreFavorites.getUserStoreFavorites(user.id.toString());
-      console.log(`[UserContext] refreshStoreFavorites: 读取到 ${demoFavorites.length} 个店铺收藏`, demoFavorites);
+      console.log(`[UserContext] refreshStoreFavorites: 读取到 ${demoFavorites.length} 个店铺收藏`);
+      
+      // 详细输出每个收藏的店铺信息
+      demoFavorites.forEach((favorite: any, index: number) => {
+        console.log(`[UserContext] 店铺收藏 ${index + 1}:`, {
+          supermarket_id: favorite.supermarket_id,
+          supermarket_name: favorite.supermarket?.name_en,
+          has_logo: !!favorite.supermarket?.logo_url,
+          logo_url: favorite.supermarket?.logo_url
+        });
+      });
+      
       setStoreFavorites(demoFavorites);
     } catch (error) {
       console.error('Failed to refresh store favorites:', error);
@@ -764,33 +775,33 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value: UserContextType = {
-    // 收藏管理
-    favorites,
-    addToFavorites,
-    removeFromFavorites,
-    checkIsFavorite,
-    refreshFavorites,
+      // 收藏管理
+      favorites,
+      addToFavorites,
+      removeFromFavorites,
+      checkIsFavorite,
+      refreshFavorites,
 
-    // 购物车管理
-    cart,
-    cartStats,
-    addToCart,
-    updateCartQuantity,
-    removeFromCart,
-    clearCart,
-    checkIsInCart,
-    refreshCart,
+      // 购物车管理
+      cart,
+      cartStats,
+      addToCart,
+      updateCartQuantity,
+      removeFromCart,
+      clearCart,
+      checkIsInCart,
+      refreshCart,
 
-    // 价格提醒
-    priceAlerts,
-    addPriceAlert,
-    refreshPriceAlerts,
+      // 价格提醒
+      priceAlerts,
+      addPriceAlert,
+      refreshPriceAlerts,
 
-    // 购物路线优化
-    shoppingRoute,
-    routeOptimization,
-    calculateOptimalRoute,
-    getRouteOptimization,
+      // 购物路线优化
+      shoppingRoute,
+      routeOptimization,
+      calculateOptimalRoute,
+      getRouteOptimization,
 
     // 商品收藏
     productFavorites,
@@ -806,11 +817,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     checkIsStoreFavorite,
     refreshStoreFavorites,
 
-    // 状态管理
-    isLoading,
-    error,
-    createDemoAccounts,
-    clearError
+      // 状态管理
+      isLoading,
+      error,
+      createDemoAccounts,
+      clearError
   };
 
   return (

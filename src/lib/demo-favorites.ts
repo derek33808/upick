@@ -352,11 +352,134 @@ export const DemoStoreFavorites = {
     console.log(`[DemoStoreFavorites] 检查是否存在: exists=${!!exists}, 当前收藏数=${existing.length}`);
     
     if (!exists) {
+      // 获取店铺信息以包含完整数据
+      const mockSupermarkets = [
+        {
+          id: 1,
+          name_en: "Pak'nSave Riccarton",
+          name_zh: "派克储蓄超市",
+          location: "Riccarton",
+          logo_url: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=200&h=200&fit=crop&crop=center",
+          lat: -43.53,
+          lng: 172.62,
+          phone: "+64 3 348 8052",
+          hours: "7:00 AM - 10:00 PM",
+          rating: 4.2
+        },
+        {
+          id: 2,
+          name_en: "Countdown Westfield",
+          name_zh: "倒计时超市",
+          location: "Riccarton",
+          logo_url: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=200&h=200&fit=crop&crop=center",
+          lat: -43.53,
+          lng: 172.61,
+          phone: "+64 3 348 7766",
+          hours: "6:00 AM - 12:00 AM",
+          rating: 4.0
+        },
+        {
+          id: 3,
+          name_en: "New World Riccarton",
+          name_zh: "新世界超市",
+          location: "Riccarton",
+          logo_url: "https://images.unsplash.com/photo-1604719312566-878b4afe3202?w=200&h=200&fit=crop&crop=center",
+          lat: -43.528,
+          lng: 172.615,
+          phone: "+64 3 349 7018",
+          hours: "7:00 AM - 10:00 PM",
+          rating: 4.1
+        },
+        {
+          id: 4,
+          name_en: "FreshChoice Barrington",
+          name_zh: "新鲜选择超市",
+          location: "Barrington",
+          logo_url: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&h=200&fit=crop&crop=center",
+          lat: -43.540,
+          lng: 172.610,
+          phone: "+64 3 338 3045",
+          hours: "7:00 AM - 9:00 PM",
+          rating: 4.3
+        },
+        {
+          id: 5,
+          name_en: "Countdown Northlands",
+          name_zh: "倒计时北地超市",
+          location: "Papanui",
+          logo_url: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=200&h=200&fit=crop&crop=center",
+          lat: -43.485,
+          lng: 172.605,
+          phone: "+64 3 352 5050",
+          hours: "6:00 AM - 12:00 AM",
+          rating: 4.1
+        },
+        {
+          id: 6,
+          name_en: "Pak'nSave Hornby",
+          name_zh: "派克储蓄霍恩比店",
+          location: "Hornby",
+          logo_url: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=200&h=200&fit=crop&crop=center",
+          lat: -43.535,
+          lng: 172.520,
+          phone: "+64 3 349 8800",
+          hours: "7:00 AM - 10:00 PM",
+          rating: 4.0
+        },
+        {
+          id: 7,
+          name_en: "New World Bishopdale",
+          name_zh: "新世界主教谷店",
+          location: "Bishopdale",
+          logo_url: "https://images.unsplash.com/photo-1604719312566-878b4afe3202?w=200&h=200&fit=crop&crop=center",
+          lat: -43.495,
+          lng: 172.555,
+          phone: "+64 3 359 4040",
+          hours: "7:00 AM - 10:00 PM",
+          rating: 4.2
+        },
+        {
+          id: 8,
+          name_en: "Countdown Eastgate",
+          name_zh: "倒计时东门店",
+          location: "Linwood",
+          logo_url: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=200&h=200&fit=crop&crop=center",
+          lat: -43.550,
+          lng: 172.680,
+          phone: "+64 3 381 4500",
+          hours: "6:00 AM - 12:00 AM",
+          rating: 3.9
+        },
+        {
+          id: 9,
+          name_en: "Four Square Addington",
+          name_zh: "四方超市",
+          location: "Addington",
+          logo_url: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=200&h=200&fit=crop&crop=center",
+          lat: -43.545,
+          lng: 172.595,
+          phone: "+64 3 338 2020",
+          hours: "7:00 AM - 9:00 PM",
+          rating: 4.0
+        }
+      ];
+      
+      const supermarket = mockSupermarkets.find(s => s.id === supermarketId);
+      
       const newFavorite = {
         id: Date.now(),
         user_id: userId,
         supermarket_id: supermarketId,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        supermarket: supermarket ? {
+          id: supermarket.id,
+          name_en: supermarket.name_en,
+          name_zh: supermarket.name_zh,
+          location: supermarket.location,
+          logo_url: supermarket.logo_url,
+          latitude: supermarket.lat,
+          longitude: supermarket.lng
+        } : undefined
       };
       
       existing.push(newFavorite);
@@ -384,7 +507,111 @@ export const DemoStoreFavorites = {
 
   getUserStoreFavorites: (userId: string) => {
     const key = `store_favorites_${userId}`;
-    return JSON.parse(localStorage.getItem(key) || '[]');
+    const favorites = JSON.parse(localStorage.getItem(key) || '[]');
+    
+    // 确保每个收藏都有完整的店铺信息
+    const mockSupermarkets = [
+      {
+        id: 1,
+        name_en: "Pak'nSave Riccarton",
+        name_zh: "派克储蓄超市",
+        location: "Riccarton",
+        logo_url: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=200&h=200&fit=crop&crop=center",
+        lat: -43.53,
+        lng: 172.62
+      },
+      {
+        id: 2,
+        name_en: "Countdown Westfield",
+        name_zh: "倒计时超市",
+        location: "Riccarton",
+        logo_url: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=200&h=200&fit=crop&crop=center",
+        lat: -43.53,
+        lng: 172.61
+      },
+      {
+        id: 3,
+        name_en: "New World Riccarton",
+        name_zh: "新世界超市",
+        location: "Riccarton",
+        logo_url: "https://images.unsplash.com/photo-1604719312566-878b4afe3202?w=200&h=200&fit=crop&crop=center",
+        lat: -43.528,
+        lng: 172.615
+      },
+      {
+        id: 4,
+        name_en: "FreshChoice Barrington",
+        name_zh: "新鲜选择超市",
+        location: "Barrington",
+        logo_url: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&h=200&fit=crop&crop=center",
+        lat: -43.540,
+        lng: 172.610
+      },
+      {
+        id: 5,
+        name_en: "Countdown Northlands",
+        name_zh: "倒计时北地超市",
+        location: "Papanui",
+        logo_url: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=200&h=200&fit=crop&crop=center",
+        lat: -43.485,
+        lng: 172.605
+      },
+      {
+        id: 6,
+        name_en: "Pak'nSave Hornby",
+        name_zh: "派克储蓄霍恩比店",
+        location: "Hornby",
+        logo_url: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=200&h=200&fit=crop&crop=center",
+        lat: -43.535,
+        lng: 172.520
+      },
+      {
+        id: 7,
+        name_en: "New World Bishopdale",
+        name_zh: "新世界主教谷店",
+        location: "Bishopdale",
+        logo_url: "https://images.unsplash.com/photo-1604719312566-878b4afe3202?w=200&h=200&fit=crop&crop=center",
+        lat: -43.495,
+        lng: 172.555
+      },
+      {
+        id: 8,
+        name_en: "Countdown Eastgate",
+        name_zh: "倒计时东门店",
+        location: "Linwood",
+        logo_url: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=200&h=200&fit=crop&crop=center",
+        lat: -43.550,
+        lng: 172.680
+      },
+      {
+        id: 9,
+        name_en: "Four Square Addington",
+        name_zh: "四方超市",
+        location: "Addington",
+        logo_url: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=200&h=200&fit=crop&crop=center",
+        lat: -43.545,
+        lng: 172.595
+      }
+    ];
+    
+    // 为没有完整店铺信息的收藏补充数据
+    return favorites.map((favorite: any) => {
+      if (!favorite.supermarket || !favorite.supermarket.logo_url) {
+        const supermarket = mockSupermarkets.find(s => s.id === favorite.supermarket_id);
+        if (supermarket) {
+          favorite.supermarket = {
+            id: supermarket.id,
+            name_en: supermarket.name_en,
+            name_zh: supermarket.name_zh,
+            location: supermarket.location,
+            logo_url: supermarket.logo_url,
+            latitude: supermarket.lat,
+            longitude: supermarket.lng
+          };
+        }
+      }
+      return favorite;
+    });
   },
 
   checkIsStoreFavorite: (userId: string, supermarketId: number) => {

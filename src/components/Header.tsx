@@ -5,7 +5,7 @@ import { UserMenu } from './UserMenu';
 import { RefreshCw } from 'lucide-react';
 
 export function Header() {
-  const { language, searchTerm, setSearchTerm, refreshData, cleanDuplicateData, reduceProductsByCategory, isLoading } = useApp();
+  const { language, searchTerm, setSearchTerm, refreshData, isLoading } = useApp();
 
   // 添加跳转到首页的函数
   const handleLogoClick = () => {
@@ -17,16 +17,12 @@ export function Header() {
     en: {
       appName: 'Upick',
       placeholder: 'Search products...',
-      refresh: 'Refresh Data',
-      cleanDuplicates: 'Clean Duplicates',
-      reduceProducts: 'Reduce Products'
+      refresh: 'Refresh Data'
     },
     zh: {
       appName: '优品',
       placeholder: '搜索商品...',
-      refresh: '刷新数据',
-      cleanDuplicates: '清除重复',
-      reduceProducts: '精简商品'
+      refresh: '刷新数据'
     }
   };
 
@@ -34,28 +30,6 @@ export function Header() {
     console.log('🔄 手动刷新数据...');
     await refreshData();
     console.log('✅ 手动刷新完成');
-  };
-
-  const handleCleanDuplicates = async () => {
-    console.log('Cleaning duplicate data...');
-    const success = await cleanDuplicateData();
-    if (success) {
-      console.log('Duplicate data cleaned successfully');
-      await refreshData(); // 重新加载数据
-    } else {
-      console.log('Failed to clean duplicate data');
-    }
-  };
-
-  const handleReduceProducts = async () => {
-    console.log('Reducing products to 2 per category...');
-    const success = await reduceProductsByCategory();
-    if (success) {
-      console.log('Products reduced successfully');
-      await refreshData(); // 重新加载数据
-    } else {
-      console.log('Failed to reduce products');
-    }
   };
 
   return (
@@ -114,22 +88,7 @@ export function Header() {
             >
               <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
-            <button
-              onClick={handleCleanDuplicates}
-              disabled={isLoading}
-              className="hidden sm:block px-3 py-1 text-xs text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
-              title={text[language].cleanDuplicates}
-            >
-              {text[language].cleanDuplicates}
-            </button>
-            <button
-              onClick={handleReduceProducts}
-              disabled={isLoading}
-              className="hidden sm:block px-3 py-1 text-xs text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
-              title={text[language].reduceProducts}
-            >
-              {text[language].reduceProducts}
-            </button>
+
             <LanguageToggle />
             <UserMenu />
           </div>

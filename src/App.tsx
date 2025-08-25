@@ -16,8 +16,7 @@ import { MapView } from './components/MapView';
 import { FavoritesView } from './components/FavoritesView';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { UserProfile } from './components/UserProfile';
-import { LoginValidationTester } from './components/LoginValidationTester';
-import { FunctionalityTest } from './components/FunctionalityTest';
+
 import { Product } from './types';
 
 function AppContent() {
@@ -28,20 +27,99 @@ function AppContent() {
   const [selectedProductName, setSelectedProductName] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
+  // 推送当前状态到浏览器历史
+  const pushStateToHistory = (state: any) => {
+    const url = new URL(window.location.href);
+    url.hash = `#${state.activeTab}`;
+    
+    if (state.selectedCategory) {
+      url.hash += `/${state.selectedCategory}`;
+    }
+    if (state.selectedProductName) {
+      url.hash += `/${encodeURIComponent(state.selectedProductName)}`;
+    }
+    
+    window.history.pushState(state, '', url.toString());
+  };
+
+  // 从URL hash解析状态
+  const parseStateFromHash = () => {
+    const hash = window.location.hash.slice(1); // 移除 #
+    if (!hash) return { activeTab: 'home' };
+    
+    const parts = hash.split('/');
+    const state: any = { activeTab: parts[0] || 'home' };
+    
+    if (parts[1]) state.selectedCategory = parts[1];
+    if (parts[2]) state.selectedProductName = decodeURIComponent(parts[2]);
+    
+    return state;
+  };
+
+  // 监听浏览器返回/前进按钮
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      const state = event.state || parseStateFromHash();
+      
+      setActiveTab(state.activeTab || 'home');
+      setSelectedCategory(state.selectedCategory || null);
+      setSelectedProductName(state.selectedProductName || null);
+      
+      // 只有当状态中没有showProductDetail时才关闭产品详情
+      if (!state.showProductDetail) {
+        setSelectedProduct(null);
+      }
+      setShowLoginModal(false); // 关闭登录模态框
+    };
+
+    // 初始化状态
+    const initialState = parseStateFromHash();
+    if (initialState.activeTab !== 'home' || initialState.selectedCategory || initialState.selectedProductName) {
+      setActiveTab(initialState.activeTab);
+      setSelectedCategory(initialState.selectedCategory || null);
+      setSelectedProductName(initialState.selectedProductName || null);
+    } else {
+      // 确保首页有历史状态
+      window.history.replaceState({ activeTab: 'home' }, '', window.location.href);
+    }
+
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   // 监听logo点击事件，跳转到首页
   useEffect(() => {
     const handleNavigateToHome = () => {
+      const newState = { 
+        activeTab: 'home',
+        selectedCategory: null,
+        selectedProductName: null 
+      };
+      
       setActiveTab('home');
       setSelectedCategory(null);
       setSelectedProductName(null);
       setSelectedProduct(null);
+      
+      pushStateToHistory(newState);
     };
     
     const handleNavigateToFavorites = () => {
+      const newState = { 
+        activeTab: 'favorites',
+        selectedCategory: null,
+        selectedProductName: null 
+      };
+      
       setActiveTab('favorites');
       setSelectedCategory(null);
       setSelectedProductName(null);
       setSelectedProduct(null);
+      
+      pushStateToHistory(newState);
     };
     
     const handleShowLoginModal = () => {
@@ -61,23 +139,55 @@ function AppContent() {
 
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
+    // 产品详情是模态框，不需要改变URL，但要添加到历史中以便返回
+    const currentState = { activeTab, selectedCategory, selectedProductName };
+    window.history.pushState({ ...currentState, showProductDetail: true }, '');
   };
 
   const handleCategoryClick = (category: string) => {
+    const newState = { 
+      activeTab,
+      selectedCategory: category,
+      selectedProductName: null 
+    };
+    
     setSelectedCategory(category);
+    setSelectedProductName(null);
+    pushStateToHistory(newState);
   };
 
   const handleBackToHome = () => {
+    const newState = { 
+      activeTab,
+      selectedCategory: null,
+      selectedProductName: null 
+    };
+    
     setSelectedCategory(null);
     setSelectedProductName(null);
+    pushStateToHistory(newState);
   };
 
   const handleProductNameClick = (productName: string) => {
+    const newState = { 
+      activeTab,
+      selectedCategory,
+      selectedProductName: productName 
+    };
+    
     setSelectedProductName(productName);
+    pushStateToHistory(newState);
   };
 
   const handleBackToCategory = () => {
+    const newState = { 
+      activeTab,
+      selectedCategory,
+      selectedProductName: null 
+    };
+    
     setSelectedProductName(null);
+    pushStateToHistory(newState);
   };
   
   if (isLoading) {
@@ -149,18 +259,7 @@ function AppContent() {
             <MapView />
           </div>
         );
-      case 'validation':
-        return (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
-            <LoginValidationTester />
-          </div>
-        );
-      case 'test':
-        return (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
-            <FunctionalityTest />
-          </div>
-        );
+
       default:
         return null;
     }
@@ -184,7 +283,22 @@ function AppContent() {
         onClose={() => setShowLoginModal(false)}
       />
 
-      <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <BottomNavigation 
+        activeTab={activeTab} 
+        onTabChange={(tab) => {
+          const newState = { 
+            activeTab: tab,
+            selectedCategory: null,
+            selectedProductName: null 
+          };
+          
+          setActiveTab(tab);
+          setSelectedCategory(null);
+          setSelectedProductName(null);
+          setSelectedProduct(null);
+          pushStateToHistory(newState);
+        }} 
+      />
     </div>
   );
 }

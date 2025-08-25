@@ -21,8 +21,6 @@ interface AppContextType {
   isLoading: boolean;
   refreshData: () => Promise<void>;
   connectionStatus: 'connecting' | 'connected' | 'failed' | 'fallback';
-  cleanDuplicateData: () => Promise<boolean>;
-  reduceProductsByCategory: () => Promise<boolean>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -582,9 +580,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSortBy,
       isLoading,
       refreshData,
-      connectionStatus,
-      cleanDuplicateData,
-      reduceProductsByCategory
+      connectionStatus
     }}>
       {children}
     </AppContext.Provider>

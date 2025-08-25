@@ -182,8 +182,37 @@ export function ShoppingCartView() {
           </div>
         ) : (
           <>
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
+            <div className="p-4 md:p-6 border-b border-gray-200">
+              {/* Mobile: Vertical Layout */}
+              <div className="md:hidden">
+                <h2 className={`text-lg font-semibold text-gray-900 mb-4 text-center ${language === 'zh' ? 'font-chinese' : ''}`}>
+                  {text[language].title} ({cart.length})
+                </h2>
+                <div className="space-y-3">
+                  <button
+                    onClick={handleCalculateRoute}
+                    disabled={isCalculatingRoute}
+                    className={`w-full flex items-center justify-center space-x-2 px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 ${language === 'zh' ? 'font-chinese' : ''}`}
+                  >
+                    {isCalculatingRoute ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    ) : (
+                      <Route className="w-4 h-4" />
+                    )}
+                    <span>{text[language].calculateRoute}</span>
+                  </button>
+                  <button
+                    onClick={handleClearCart}
+                    className={`w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-medium transition-colors ${language === 'zh' ? 'font-chinese' : ''}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>{text[language].clearCart}</span>
+                  </button>
+                </div>
+              </div>
+              
+              {/* Desktop: Horizontal Layout */}
+              <div className="hidden md:flex items-center justify-between">
                 <h2 className={`text-lg font-semibold text-gray-900 ${language === 'zh' ? 'font-chinese' : ''}`}>
                   {text[language].title} ({cart.length})
                 </h2>
@@ -213,10 +242,64 @@ export function ShoppingCartView() {
 
             <div className="divide-y divide-gray-200">
               {cart.map((item) => (
-                <div key={item.id} className="p-6">
-                  <div className="flex items-center space-x-4">
+                <div key={item.id} className="p-4 md:p-6">
+                  {/* Mobile Layout */}
+                  <div className="md:hidden">
+                    <div className="flex items-start space-x-3 mb-3">
+                      <img
+                        src={item.product?.image || item.product?.image_url}
+                        alt={language === 'en' ? item.product?.name_en : item.product?.name_zh}
+                        className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iIzlmYTJhNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+                        }}
+                      />
+                      
+                      <div className="flex-1 min-w-0">
+                        <h3 className={`font-semibold text-gray-900 mb-1 text-sm ${language === 'zh' ? 'font-chinese' : ''}`}>
+                          {language === 'en' ? item.product?.name_en : item.product?.name_zh}
+                        </h3>
+                        <div className="text-xs text-gray-600 mb-2">
+                          {language === 'en' ? item.product?.supermarket?.name_en : item.product?.supermarket?.name_zh}
+                        </div>
+                        <div className="text-lg font-bold text-primary-600">
+                          ${((item.product?.price || 0) * item.quantity).toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Mobile Controls */}
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleQuantityChange(item.product_id, item.quantity - 1)}
+                          className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="w-8 text-center font-semibold">{item.quantity}</span>
+                        <button
+                          onClick={() => handleQuantityChange(item.product_id, item.quantity + 1)}
+                          className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                      
+                      <button
+                        onClick={() => handleRemoveItem(item.product_id)}
+                        className="p-2 text-red-600 hover:bg-red-100 rounded-full transition-colors"
+                        title={text[language].remove}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Desktop Layout */}
+                  <div className="hidden md:flex items-center space-x-4">
                     <img
-                      src={item.product?.image_url}
+                      src={item.product?.image || item.product?.image_url}
                       alt={language === 'en' ? item.product?.name_en : item.product?.name_zh}
                       className="w-16 h-16 object-cover rounded-lg"
                       onError={(e) => {
@@ -293,7 +376,7 @@ export function ShoppingCartView() {
             </div>
             
             {/* Route Summary */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-4">
               <div className="text-center">
                 <div className="text-xl font-bold text-green-600">${shoppingRoute.total_cost.toFixed(2)}</div>
                 <div className={`text-sm text-gray-600 ${language === 'zh' ? 'font-chinese' : ''}`}>
@@ -372,7 +455,7 @@ export function ShoppingCartView() {
                     </div>
 
                     {/* Store Actions */}
-                    <div className="flex space-x-2">
+                    <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2">
                       <button
                         onClick={() => handleViewOnMap(store)}
                         className={`flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors ${language === 'zh' ? 'font-chinese' : ''}`}

@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Heart, Store, MapPin, Star, Clock, TrendingUp, TrendingDown, Trash2, Eye, ShoppingCart, Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Heart, Store, MapPin, Trash2, Eye, ShoppingCart, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
 import { useApp } from '../contexts/AppContext';
-import { ProductFavorite, StoreFavorite } from '../types/user';
 import { PriceHistoryChart } from './PriceHistoryChart';
 import { generateSeededSeries } from '../lib/chartUtils';
 import { StoreDetailModal } from './StoreDetailModal';
@@ -14,6 +13,7 @@ export function FavoritesView() {
     favorites, // 店铺产品收藏（原始）
     productFavorites, 
     storeFavorites, 
+    removeFromFavorites,
     removeFromProductFavorites, 
     removeFromStoreFavorites,
     addToCart,
@@ -31,10 +31,12 @@ export function FavoritesView() {
   const text = {
     en: {
       title: 'My Favorites',
-      productFavorites: 'Product Favorites',
-      storeFavorites: 'Store Favorites',
-      noProductFavorites: 'No product favorites yet',
-      noStoreFavorites: 'No store favorites yet',
+      productFavorites: 'Products',
+      storeFavorites: 'Stores',
+      storeProductFavorites: 'Store Items',
+      noProductFavorites: "You haven't saved any product favorites yet",
+      noStoreFavorites: "You haven't saved any store favorites yet",
+      noStoreProductFavorites: "You haven't saved any store product favorites yet",
       addToCart: 'Add to Cart',
       removeFromFavorites: 'Remove',
       viewDetails: 'View Details',
@@ -50,10 +52,12 @@ export function FavoritesView() {
     },
     zh: {
       title: '我的收藏',
-      productFavorites: '商品收藏',
-      storeFavorites: '店铺收藏',
-      noProductFavorites: '暂无商品收藏',
-      noStoreFavorites: '暂无店铺收藏',
+      productFavorites: '单一商品',
+      storeFavorites: '店铺',
+      storeProductFavorites: '店铺商品',
+      noProductFavorites: '您还没有收藏任何商品',
+      noStoreFavorites: '您还没有收藏任何店铺',
+      noStoreProductFavorites: '您还没有收藏任何店铺商品',
       addToCart: '加入购物车',
       removeFromFavorites: '取消收藏',
       viewDetails: '查看详情',
@@ -106,6 +110,18 @@ export function FavoritesView() {
   const handleRemoveStoreFavorite = async (supermarketId: number) => {
     try {
       const success = await removeFromStoreFavorites(supermarketId);
+      if (success) {
+        console.log(text[language].removeSuccess);
+      }
+    } catch (error) {
+      console.error(text[language].error, error);
+    }
+  };
+
+  // 处理店铺产品收藏删除
+  const handleRemoveFromFavorites = async (productId: number) => {
+    try {
+      const success = await removeFromFavorites(productId);
       if (success) {
         console.log(text[language].removeSuccess);
       }
@@ -197,51 +213,57 @@ export function FavoritesView() {
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mb-8">
+      <div className="flex space-x-0.5 md:space-x-1 bg-gray-100 p-1 rounded-lg mb-8 overflow-hidden">
         <button
           onClick={() => setActiveTab('single')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+          className={`flex-1 py-2.5 md:py-2 px-2 md:px-4 rounded-md text-xs md:text-sm font-medium transition-colors min-w-0 ${
             activeTab === 'single'
               ? 'bg-white text-gray-900 shadow-sm'
               : 'text-gray-600 hover:text-gray-900'
           } ${language === 'zh' ? 'font-chinese' : ''}`}
         >
-          <div className="flex items-center justify-center space-x-2">
-            <Heart className="w-4 h-4" />
-            <span>{text[language].productFavorites}</span>
-            <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">
+          <div className="flex flex-col md:flex-row items-center justify-center space-y-1 md:space-y-0 md:space-x-2">
+            <div className="flex items-center space-x-1">
+              <Heart className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+              <span className="text-xs md:text-sm truncate">{text[language].productFavorites}</span>
+            </div>
+            <span className="bg-gray-200 text-gray-700 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-xs flex-shrink-0">
               {productFavorites.length}
             </span>
           </div>
         </button>
         <button
           onClick={() => setActiveTab('storeProducts')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+          className={`flex-1 py-2.5 md:py-2 px-2 md:px-4 rounded-md text-xs md:text-sm font-medium transition-colors min-w-0 ${
             activeTab === 'storeProducts'
               ? 'bg-white text-gray-900 shadow-sm'
               : 'text-gray-600 hover:text-gray-900'
           } ${language === 'zh' ? 'font-chinese' : ''}`}
         >
-          <div className="flex items-center justify-center space-x-2">
-            <Store className="w-4 h-4" />
-            <span>Store Product Favorites</span>
-            <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">
+          <div className="flex flex-col md:flex-row items-center justify-center space-y-1 md:space-y-0 md:space-x-2">
+            <div className="flex items-center space-x-1">
+              <Store className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+              <span className="text-xs md:text-sm truncate">{text[language].storeProductFavorites}</span>
+            </div>
+            <span className="bg-gray-200 text-gray-700 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-xs flex-shrink-0">
               {favorites.length}
             </span>
           </div>
         </button>
         <button
           onClick={() => setActiveTab('stores')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+          className={`flex-1 py-2.5 md:py-2 px-2 md:px-4 rounded-md text-xs md:text-sm font-medium transition-colors min-w-0 ${
             activeTab === 'stores'
               ? 'bg-white text-gray-900 shadow-sm'
               : 'text-gray-600 hover:text-gray-900'
           } ${language === 'zh' ? 'font-chinese' : ''}`}
         >
-          <div className="flex items-center justify-center space-x-2">
-            <Store className="w-4 h-4" />
-            <span>{text[language].storeFavorites}</span>
-            <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">
+          <div className="flex flex-col md:flex-row items-center justify-center space-y-1 md:space-y-0 md:space-x-2">
+            <div className="flex items-center space-x-1">
+              <Store className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+              <span className="text-xs md:text-sm truncate">{text[language].storeFavorites}</span>
+            </div>
+            <span className="bg-gray-200 text-gray-700 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-xs flex-shrink-0">
               {storeFavorites.length}
             </span>
           </div>
@@ -253,20 +275,20 @@ export function FavoritesView() {
         /* Product Favorites */
         <div className="space-y-4 md:space-y-6">
           {productFavorites.length === 0 ? (
-            <div className="text-center py-12">
-              <Heart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+        <div className="text-center py-12">
+          <Heart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <p className={`text-gray-600 ${language === 'zh' ? 'font-chinese' : ''}`}>
                 {text[language].noProductFavorites}
-              </p>
-            </div>
-          ) : (
+          </p>
+        </div>
+      ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               {productFavorites.map((favorite) => {
                 const priceStats = getProductPriceStats(favorite.product_name_en);
                 const matchingProducts = getProductPrices(favorite.product_name_en);
                 const isExpanded = expandedProducts.has(favorite.product_name_en);
 
-                return (
+            return (
                   <div key={favorite.id} className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 hover:shadow-lg transition-shadow">
                     {/* Product Header */}
                     <div className="flex items-start space-x-3 md:space-x-4 mb-4">
@@ -275,7 +297,7 @@ export function FavoritesView() {
                           src={favorite.product_image || '/public/logo.svg'}
                           alt={language === 'en' ? favorite.product_name_en : favorite.product_name_zh}
                           className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-lg bg-gray-100"
-                          onError={(e) => {
+                    onError={(e) => {
                             e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yOCAzMkMyOCAyOS43OTA5IDI5Ljc5MDkgMjggMzIgMjhIMzZDMzguMjA5MSAyOCA0MCAyOS43OTA5IDQwIDMyVjM2QzQwIDM4LjIwOTEgMzguMjA5MSA0MCAzNiA0MEgzMkMyOS43OTA5IDQwIDI4IDM4LjIwOTEgMjggMzZWMzJaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik00MiA0NEM0MiA0MS43OTA5IDQzLjc5MDkgNDAgNDYgNDBINTBDNTIuMjA5MSA0MCA1NCA0MS43OTA5IDU0IDQ0VjQ4QzU0IDUwLjIwOTEgNTIuMjA5MSA1MiA1MCA1Mkg0NkM0My43OTA5IDUyIDQyIDUwLjIwOTEgNDIgNDhWNDRaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0yNiA0NkMzMS41MjI5IDQ2IDM2IDQxLjUyMjkgMzYgMzZDMzYgMzAuNDc3MSAzMS41MjI5IDI2IDI2IDI2QzIwLjQ3NzEgMjYgMTYgMzAuNDc3MSAxNiAzNkMxNiA0MS41MjI5IDIwLjQ3NzEgNDYgMjYgNDZaIiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPgo8L3N2Zz4K';
                           }}
                         />
@@ -338,11 +360,12 @@ export function FavoritesView() {
                               <div className="overflow-hidden rounded-lg">
                                 <PriceHistoryChart 
                                   prices={generateSeededSeries(favorite.product_name_en, priceStats.avg, 90)} 
-                                  height={100}
+                                  height={160}
+                                  width={640}
                                 />
                               </div>
-                            </div>
-                          )}
+                    </div>
+                  )}
                   
                           {/* Store List */}
                           <div>
@@ -366,7 +389,7 @@ export function FavoritesView() {
                                         {language === 'en' ? product.supermarket?.name_en : product.supermarket?.name_zh}
                                       </div>
                                       <div className="text-xs text-gray-600 truncate">
-                                        {product.location}
+                                        {product.supermarket?.location}
                                       </div>
                                     </div>
                                   </div>
@@ -418,7 +441,9 @@ export function FavoritesView() {
           {favorites.length === 0 ? (
             <div className="text-center py-12">
               <Store className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className={`text-gray-600 ${language === 'zh' ? 'font-chinese' : ''}`}>No store product favorites</p>
+              <p className={`text-gray-600 ${language === 'zh' ? 'font-chinese' : ''}`}>
+                {text[language].noStoreProductFavorites}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -432,7 +457,14 @@ export function FavoritesView() {
                 return (
                   <div key={favorite.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
                     <div className="flex items-center space-x-4 mb-3">
-                      <img src={favorite.product?.image_url} className="w-16 h-16 object-cover rounded-lg"/>
+                      <img 
+                        src={favorite.product?.image_url} 
+                        alt={language === 'en' ? favorite.product?.name_en : favorite.product?.name_zh}
+                        className="w-16 h-16 object-cover rounded-lg"
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0icHJvZHVjdEdyYWRpZW50IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzEwQjk4MTtzdG9wLW9wYWNpdHk6MSIgLz4KPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMzNCMzZCO3N0b3Atb3BhY2l0eToxIiAvPgo8L2xpbmVhckdyYWRpZW50Pgo8L2RlZnM+CjxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgZmlsbD0idXJsKCNwcm9kdWN0R3JhZGllbnQpIiByeD0iOCIvPgo8c3ZnIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgeD0iMTYiIHk9IjE2IiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj4KPHA+YXRoIGQ9Ik0yMiAxMmgtNGwtMy05LTMgOWgtNGwyIDVoMTB6Ii8+CjxjaXJjbGUgY3g9IjEyIiBjeT0iNSIgcj0iMyIvPgo8L3N2Zz4KPC9zdmc+Cg==';
+                        }}
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-gray-900 truncate">
                           {favorite.product?.name_en}
@@ -441,9 +473,18 @@ export function FavoritesView() {
                           {favorite.product?.supermarket?.name_en}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold">${favorite.product?.price?.toFixed?.(2) || favorite.product?.price}</div>
-                        <div className="text-xs text-gray-500">{favorite.product?.unit}</div>
+                      <div className="flex items-center space-x-3">
+                        <div className="text-right">
+                          <div className="text-lg font-bold">${favorite.product?.price?.toFixed?.(2) || favorite.product?.price}</div>
+                          <div className="text-xs text-gray-500">{favorite.product?.unit}</div>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveFromFavorites(favorite.product_id)}
+                          className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title={text[language].removeFromFavorites}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                     {cheaperElsewhere && (
@@ -538,8 +579,8 @@ export function FavoritesView() {
               </div>
             );
           })}
-            </div>
-          )}
+        </div>
+      )}
         </div>
       )}
       
