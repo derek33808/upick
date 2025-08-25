@@ -334,9 +334,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       
       console.log('🏪 开始加载超市数据...');
       
-      // 设置5秒超时，给数据库更多时间响应
+      // 设置8秒超时，给数据库更多时间响应
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
       
       const { data, error } = await supabase
         .from('supermarkets')
@@ -379,7 +379,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return true;
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        console.warn('⚠️ 加载超市数据超时 (3秒)');
+        console.warn('⚠️ 加载超市数据超时 (8秒)');
       } else if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
         console.warn('⚠️ 网络连接异常，无法加载超市数据');
       } else {
@@ -453,7 +453,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return true;
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        console.warn('⚠️ 加载商品数据超时 (5秒)');
+        console.warn('⚠️ 加载商品数据超时 (8秒)');
       } else if (error instanceof TypeError && (error.message.includes('Failed to fetch') || error.message.includes('fetch'))) {
         console.warn('⚠️ 网络连接异常，无法加载商品数据');
       } else {
@@ -469,39 +469,56 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       setConnectionStatus('connecting');
       
-      // 1. 快速测试数据库连接
-      const connectionTest = await testConnection();
-      if (!connectionTest) {
-        console.log('⚠️ 数据库连接失败，直接使用离线模式');
+      // 1. 优先尝试数据库连接和数据加载
+      try {
+        console.log('🔌 优先尝试数据库连接...');
+        const connectionTest = await testConnection();
+        
+        if (connectionTest) {
+          console.log('✅ 数据库连接成功，加载数据库数据...');
+          
+          // 尝试同步mock数据到数据库（非阻塞）
+          syncMockDataToDatabase().catch(error => {
+            console.warn('⚠️ 后台数据同步失败:', error);
+          });
+          
+          // 从数据库加载数据，设置10秒超时
+          const loadPromise = Promise.all([
+            loadSupermarkets(),
+            loadProducts()
+          ]);
+          
+          // 设置10秒超时
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Database load timeout')), 10000);
+          });
+          
+          const [supermarketsLoaded, productsLoaded] = await Promise.race([
+            loadPromise,
+            timeoutPromise
+          ]) as [boolean, boolean];
+          
+          if (supermarketsLoaded && productsLoaded) {
+            setConnectionStatus('connected');
+            console.log('✅ 数据库数据加载成功');
+            return; // 成功加载数据库数据，直接返回
+          } else {
+            throw new Error('Failed to load database data');
+          }
+        } else {
+          throw new Error('Database connection failed');
+        }
+      } catch (error) {
+        console.warn('⚠️ 数据库访问失败或超时，回退到mock数据:', error);
+        
+        // 2. 数据库失败时使用mock数据
         setConnectionStatus('fallback');
         setSupermarkets(mockSupermarkets);
         setProducts(mockProducts);
-        setIsLoading(false);
-        return;
-      }
-      
-      // 2. 尝试同步mock数据到数据库（非阻塞）
-      syncMockDataToDatabase().catch(error => {
-        console.warn('⚠️ 后台数据同步失败:', error);
-      });
-      
-      // 3. 从数据库加载数据
-      const [supermarketsLoaded, productsLoaded] = await Promise.all([
-        loadSupermarkets(),
-        loadProducts()
-      ]);
-      
-      if (supermarketsLoaded && productsLoaded) {
-        setConnectionStatus('connected');
-        console.log('✅ 数据库数据加载成功');
-      } else {
-        console.log('⚠️ 数据库数据加载失败或权限问题，切换到离线模式');
-        setConnectionStatus('fallback');
-        setSupermarkets(mockSupermarkets);
-        setProducts(mockProducts);
+        console.log('✅ Mock数据已加载作为回退方案');
       }
     } catch (error) {
-      console.warn('⚠️ 数据加载异常，切换到离线模式:', error);
+      console.error('❌ 数据加载异常，使用mock数据:', error);
       setConnectionStatus('fallback');
       setSupermarkets(mockSupermarkets);
       setProducts(mockProducts);

@@ -90,7 +90,49 @@ export const supabase = isSupabaseConfigured
 let connectionCache: { status: boolean; timestamp: number } | null = null;
 const CACHE_DURATION = 60000; // 1 minute
 
-// 测试数据库连接（带缓存）
+// 限制并发连接数
+let activeConnections = 0;
+const MAX_CONCURRENT_CONNECTIONS = 3;
+
+// 连接队列
+const connectionQueue: Array<() => Promise<any>> = [];
+let isProcessingQueue = false;
+
+// 处理连接队列
+const processConnectionQueue = async () => {
+  if (isProcessingQueue || connectionQueue.length === 0) return;
+  
+  isProcessingQueue = true;
+  
+  while (connectionQueue.length > 0 && activeConnections < MAX_CONCURRENT_CONNECTIONS) {
+    const task = connectionQueue.shift();
+    if (task) {
+      activeConnections++;
+      task().finally(() => {
+        activeConnections--;
+      });
+    }
+  }
+  
+  isProcessingQueue = false;
+};
+
+// 添加到连接队列
+const queueConnection = <T>(task: () => Promise<T>): Promise<T> => {
+  return new Promise((resolve, reject) => {
+    connectionQueue.push(async () => {
+      try {
+        const result = await task();
+        resolve(result);
+      } catch (error) {
+        reject(error);
+      }
+    });
+    processConnectionQueue();
+  });
+};
+
+// 测试数据库连接（带缓存和队列）
 export const testConnection = async (): Promise<boolean> => {
   if (!isSupabaseConfigured) {
     console.warn('⚠️ Supabase未配置，使用模拟模式');
@@ -104,39 +146,46 @@ export const testConnection = async (): Promise<boolean> => {
   }
 
   try {
-    console.log('🔌 测试Supabase连接...');
-    
-    // 使用最简单的查询测试连接，设置3秒超时
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
-    
-    // 测试最基本的连接 - 使用公共表
-    const { data, error } = await supabase
-      .from('supermarkets')
-      .select('id')
-      .limit(1)
-      .abortSignal(controller.signal);
-    
-    clearTimeout(timeoutId);
-    
-    const isConnected = !error;
-    
-    // Update cache
-    connectionCache = {
-      status: isConnected,
-      timestamp: Date.now()
-    };
-    
-    if (error) {
-      console.warn('⚠️ 数据库连接测试失败:', error.message);
-      return false;
-    }
-    
-    console.log('✅ 数据库连接成功');
-    return true;
+    return await queueConnection(async () => {
+      console.log('🔌 测试Supabase连接...');
+      
+      // 使用最简单的查询测试连接，设置8秒超时
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      
+      try {
+        // 测试最基本的连接 - 使用公共表
+        const { data, error } = await supabase
+          .from('supermarkets')
+          .select('id')
+          .limit(1)
+          .abortSignal(controller.signal);
+        
+        clearTimeout(timeoutId);
+        
+        const isConnected = !error;
+        
+        // Update cache
+        connectionCache = {
+          status: isConnected,
+          timestamp: Date.now()
+        };
+        
+        if (error) {
+          console.warn('⚠️ 数据库连接测试失败:', error.message);
+          return false;
+        }
+        
+        console.log('✅ 数据库连接成功');
+        return true;
+      } catch (requestError) {
+        clearTimeout(timeoutId);
+        throw requestError;
+      }
+    });
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      console.warn('⚠️ 数据库连接超时 (3秒)');
+      console.warn('⚠️ 数据库连接超时 (8秒)');
     } else {
       console.warn('⚠️ 数据库连接测试异常:', error);
     }

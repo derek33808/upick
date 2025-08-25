@@ -16,7 +16,7 @@ export const mockSupermarkets: Supermarket[] = [
   {
     id: 2,
     name_en: "Countdown Westfield",
-    name_zh: "倒计时超市",
+    name_zh: "Countdown Westfield",
     location: "Riccarton",
     logo_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRkZGRkZGIiByeD0iMTAiLz4KPCEtLSBDb3VudGRvd24gR3JlZW4gQXBwbGUgTG9nbyAtLT4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDAsIDQwKSI+CjxwYXRoIGQ9Ik02MCA2MEMzMCA2MCA2IDM0IDM2IDRDNjYgMzQgOTAgNjAgNjAgNjBaIiBmaWxsPSIjNzNCNTFFIi8+CjxwYXRoIGQ9Ik02MCA2MEMzMCA2MCA2IDM0IDM2IDRDNjYgMzQgOTAgNjAgNjAgNjBaIiBmaWxsPSIjNzNCNTFFIiBvcGFjaXR5PSIwLjQiLz4KPHBhdGggZD0iTTYwIDYwQzY2IDI4IDEwNCA2IDExNiAzNkMxMDQgNjYgNjAgNjAgNjAgNjBaIiBmaWxsPSIjOEVDNDREIi8+CjxwYXRoIGQ9Ik02MCA2MEMxMDggNjAgMTE2IDM2IDExNiAzNkMxMDQgNiA2NiAyOCA2MCA2MFoiIGZpbGw9IiM2OEE1M0UiLz4KPC9nPgo8dGV4dCB4PSIxMDAiIHk9IjE0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0VGMzIzQyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iYm9sZCIgZm9udC1zaXplPSIyMiI+Y291bnRkb3duPC90ZXh0Pgo8dGV4dCB4PSIxMDAiIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY4QTUzRSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0Ij5zaG9wIHNtYXJ0ZXI8L3RleHQ+Cjwvc3ZnPg==",
     lat: -43.53,
@@ -28,7 +28,7 @@ export const mockSupermarkets: Supermarket[] = [
   {
     id: 3,
     name_en: "New World Riccarton",
-    name_zh: "新世界超市",
+    name_zh: "New World Riccarton",
     location: "Riccarton",
     logo_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRkZGRkZGIiByeD0iMTAiLz4KPCEtLSBOZXcgV29ybGQgRGlhbW9uZCBMb2dvIC0tPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg1MCwgNDApIj4KPHBhdGggZD0iTTUwIDIwTDgwIDUwTDUwIDgwTDIwIDUwWiIgZmlsbD0iI0VEMzEzQyIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjMiLz4KPHBhdGggZD0iTTI4IDQyTDcyIDQyTDUwIDIwWiIgZmlsbD0iI0ZGRkZGRiIvPgo8cGF0aCBkPSJNMjggNThMNzIgNThMNTAgODBaIiBmaWxsPSIjRkZGRkZGIi8+CjxwYXRoIGQ9Ik0yMCA1MEw0MiA1MEw1MCAyOFoiIGZpbGw9IiNGRkZGRkYiLz4KPHBhdGggZD0iTTU4IDUwTDgwIDUwTDUwIDI4WiIgZmlsbD0iI0ZGRkZGRiIvPgo8cGF0aCBkPSJNMjAgNTBMNDIgNTBMNTAgNzJaIiBmaWxsPSIjRkZGRkZGIi8+CjxwYXRoIGQ9Ik01OCA1MEw4MCA1MEw1MCA3MloiIGZpbGw9IiNGRkZGRkYiLz4KPGVsbGlwc2UgY3g9IjUwIiBjeT0iNTAiIHJ4PSIxNCIgcnk9IjE0IiBmaWxsPSIjRkZGRkZGIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIvPgo8dGV4dCB4PSI1MCIgeT0iNTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNFRDMxM0MiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iMTYiPk5XPC90ZXh0Pgo8L2c+Cjx0ZXh0IHg9IjEwMCIgeT0iMTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRUQzMTNDIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjE4Ij5ORVcgV09STEQ8L3RleHQ+Cjwvc3ZnPg==",
     lat: -43.528,
@@ -40,7 +40,7 @@ export const mockSupermarkets: Supermarket[] = [
   {
     id: 4,
     name_en: "FreshChoice Barrington",
-    name_zh: "新鲜选择超市",
+    name_zh: "FreshChoice Barrington",
     location: "Barrington",
     logo_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjMDA5NEY0IiByeD0iMTAiLz4KPCEtLSBGcmVzaENob2ljZSBDb2xvcmZ1bCBDaXJjbGUgTG9nbyAtLT4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDAsIDQ1KSI+CjxwYXRoIGQ9Ik0zNSA1NUMzNSAzNSA1NSAzNSA3NSA1NVM3NSA3NSA1NSA3NVMzNSA3NSAzNSA1NVoiIGZpbGw9IiNGRkVEMDAiLz4KPHBhdGggZD0iTTM1IDU1QzM1IDM1IDU1IDM1IDc1IDU1UzEwMCA3NSA4MCA3NVM1NSA3NSAzNSA1NVoiIGZpbGw9IiNGRkI5MDAiLz4KPHBhdGggZD0iTTc1IDU1QzEwMCA1NSAxMDAgNzUgODAgNzVTNTUgNzUgNzUgNTVaIiBmaWxsPSIjRkY2OTAwIi8+CjxwYXRoIGQ9Ik01NSA1NUMzNSAzNSA1NSAzNSA3NSA1NVMxMDAgNzUgODAgNzVTNTUgNzUgNTUgNTVaIiBmaWxsPSIjNEZCRTQyIi8+CjxwYXRoIGQ9Ik02MCA1NUMzNSAzNSA1NSAzNSA3NSA1NVMxMDAgNzUgODAgNzVTNjAgNzUgNjAgNTVaIiBmaWxsPSIjRkZGRkZGIiBvcGFjaXR5PSIwLjMiLz4KPC9nPgo8dGV4dCB4PSIxMDAiIHk9IjEzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZGRkZGRiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0ibm9ybWFsIj5mcmVzaDwvdGV4dD4KPHRleHQgeD0iMTAwIiB5PSIxNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRkZGRkYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiPmNob2ljZTwvdGV4dD4KPC9zdmc+",
     lat: -43.540,
@@ -52,7 +52,7 @@ export const mockSupermarkets: Supermarket[] = [
   {
     id: 5,
     name_en: "Countdown Northlands",
-    name_zh: "倒计时北地超市",
+    name_zh: "Countdown Northlands",
     location: "Papanui",
     logo_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRkZGRkZGIiByeD0iMTAiLz4KPCEtLSBDb3VudGRvd24gR3JlZW4gQXBwbGUgTG9nbyAtLT4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDAsIDQwKSI+CjxwYXRoIGQ9Ik02MCA2MEMzMCA2MCA2IDM0IDM2IDRDNjYgMzQgOTAgNjAgNjAgNjBaIiBmaWxsPSIjNzNCNTFFIi8+CjxwYXRoIGQ9Ik02MCA2MEMzMCA2MCA2IDM0IDM2IDRDNjYgMzQgOTAgNjAgNjAgNjBaIiBmaWxsPSIjNzNCNTFFIiBvcGFjaXR5PSIwLjQiLz4KPHBhdGggZD0iTTYwIDYwQzY2IDI4IDEwNCA2IDExNiAzNkMxMDQgNjYgNjAgNjAgNjAgNjBaIiBmaWxsPSIjOEVDNDREIi8+CjxwYXRoIGQ9Ik02MCA2MEMxMDggNjAgMTE2IDM2IDExNiAzNkMxMDQgNiA2NiAyOCA2MCA2MFoiIGZpbGw9IiM2OEE1M0UiLz4KPC9nPgo8dGV4dCB4PSIxMDAiIHk9IjE0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0VGMzIzQyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iYm9sZCIgZm9udC1zaXplPSIyMiI+Y291bnRkb3duPC90ZXh0Pgo8dGV4dCB4PSIxMDAiIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY4QTUzRSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0Ij5zaG9wIHNtYXJ0ZXI8L3RleHQ+Cjwvc3ZnPg==",
     lat: -43.485,
@@ -64,7 +64,7 @@ export const mockSupermarkets: Supermarket[] = [
   {
     id: 6,
     name_en: "Pak'nSave Hornby",
-    name_zh: "派克储蓄霍恩比店",
+    name_zh: "Pak'nSave Hornby",
     location: "Hornby",
     logo_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRkZEQjAwIiByeD0iMTAiLz4KPHJlY3QgeD0iNDAiIHk9IjcwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjQ4IiBmaWxsPSIjMDAwMDAwIiByeD0iNCIvPgo8dGV4dCB4PSIxMDAiIHk9Ijk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkZEQjAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjE4Ij5QQUtuU0FWRTY8L3RleHQ+Cjx0ZXh0IHg9IjEwMCIgeT0iMTA5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkZGRkZGIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjEyIj5IT1JOQlk8L3RleHQ+Cjwvc3ZnPg==",
     lat: -43.535,
@@ -76,7 +76,7 @@ export const mockSupermarkets: Supermarket[] = [
   {
     id: 7,
     name_en: "New World Bishopdale",
-    name_zh: "新世界主教谷店",
+    name_zh: "New World Bishopdale",
     location: "Bishopdale",
     logo_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRkZGRkZGIiByeD0iMTAiLz4KPCEtLSBOZXcgV29ybGQgRGlhbW9uZCBMb2dvIC0tPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg1MCwgNDApIj4KPHBhdGggZD0iTTUwIDIwTDgwIDUwTDUwIDgwTDIwIDUwWiIgZmlsbD0iI0VEMzEzQyIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjMiLz4KPHBhdGggZD0iTTI4IDQyTDcyIDQyTDUwIDIwWiIgZmlsbD0iI0ZGRkZGRiIvPgo8cGF0aCBkPSJNMjggNThMNzIgNThMNTAgODBaIiBmaWxsPSIjRkZGRkZGIi8+CjxwYXRoIGQ9Ik0yMCA1MEw0MiA1MEw1MCAyOFoiIGZpbGw9IiNGRkZGRkYiLz4KPHBhdGggZD0iTTU4IDUwTDgwIDUwTDUwIDI4WiIgZmlsbD0iI0ZGRkZGRiIvPgo8cGF0aCBkPSJNMjAgNTBMNDIgNTBMNTAgNzJaIiBmaWxsPSIjRkZGRkZGIi8+CjxwYXRoIGQ9Ik01OCA1MEw4MCA1MEw1MCA3MloiIGZpbGw9IiNGRkZGRkYiLz4KPGVsbGlwc2UgY3g9IjUwIiBjeT0iNTAiIHJ4PSIxNCIgcnk9IjE0IiBmaWxsPSIjRkZGRkZGIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIvPgo8dGV4dCB4PSI1MCIgeT0iNTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNFRDMxM0MiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iMTYiPk5XPC90ZXh0Pgo8L2c+Cjx0ZXh0IHg9IjEwMCIgeT0iMTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRUQzMTNDIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjE4Ij5ORVcgV09STEQ8L3RleHQ+Cjwvc3ZnPg==",
     lat: -43.495,
@@ -88,7 +88,7 @@ export const mockSupermarkets: Supermarket[] = [
   {
     id: 8,
     name_en: "Countdown Eastgate",
-    name_zh: "倒计时东门店",
+    name_zh: "Countdown Eastgate",
     location: "Linwood",
     logo_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRkZGRkZGIiByeD0iMTAiLz4KPCEtLSBDb3VudGRvd24gR3JlZW4gQXBwbGUgTG9nbyAtLT4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDAsIDQwKSI+CjxwYXRoIGQ9Ik02MCA2MEMzMCA2MCA2IDM0IDM2IDRDNjYgMzQgOTAgNjAgNjAgNjBaIiBmaWxsPSIjNzNCNTFFIi8+CjxwYXRoIGQ9Ik02MCA2MEMzMCA2MCA2IDM0IDM2IDRDNjYgMzQgOTAgNjAgNjAgNjBaIiBmaWxsPSIjNzNCNTFFIiBvcGFjaXR5PSIwLjQiLz4KPHBhdGggZD0iTTYwIDYwQzY2IDI4IDEwNCA2IDExNiAzNkMxMDQgNjYgNjAgNjAgNjAgNjBaIiBmaWxsPSIjOEVDNDREIi8+CjxwYXRoIGQ9Ik02MCA2MEMxMDggNjAgMTE2IDM2IDExNiAzNkMxMDQgNiA2NiAyOCA2MCA2MFoiIGZpbGw9IiM2OEE1M0UiLz4KPC9nPgo8dGV4dCB4PSIxMDAiIHk9IjE0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0VGMzIzQyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iYm9sZCIgZm9udC1zaXplPSIyMiI+Y291bnRkb3duPC90ZXh0Pgo8dGV4dCB4PSIxMDAiIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY4QTUzRSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0Ij5zaG9wIHNtYXJ0ZXI8L3RleHQ+Cjwvc3ZnPg==",
     lat: -43.550,
@@ -97,18 +97,55 @@ export const mockSupermarkets: Supermarket[] = [
     hours: "6:00 AM - 12:00 AM",
     rating: 3.9
   },
-  // 确保与数据库生成的数据一致
+  // 华人超市
   {
     id: 9,
+    name_en: "Tai Wah Supermarket",
+    name_zh: "大华超市",
+    location: "Riccarton",
+    logo_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjREM0MzNCIiByeD0iMTAiLz4KPCEtLSBDaGluZXNlIERyYWdvbiBJbnNwaXJlZCBMb2dvIC0tPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0MCwgNDApIj4KPGNpcmNsZSBjeD0iNjAiIGN5PSI2MCIgcj0iNDUiIGZpbGw9IiNGRkQ3MDAiIHN0cm9rZT0iI0RDNDMzQiIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxwYXRoIGQ9Ik0zNSA2MEw4NSA2MEw2MCA0MEwzNSA2MFoiIGZpbGw9IiNEQzQzM0IiLz4KPHBhdGggZD0iTTM1IDYwTDg1IDYwTDYwIDgwTDM1IDYwWiIgZmlsbD0iI0RDNDMzQiIvPgo8Y2lyY2xlIGN4PSI2MCIgY3k9IjYwIiByPSIyNSIgZmlsbD0iI0ZGRkZGRiIgc3Ryb2tlPSIjREMxQjMyIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iNjAiIHk9IjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjREMxQjMyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjI0Ij7lpKc8L3RleHQ+CjwvZz4KPHRleHQgeD0iMTAwIiB5PSIxNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRkZGRkYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iMTgiPlRBSSBXQUg8L3RleHQ+Cjx0ZXh0IHg9IjEwMCIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkZGRkZGIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiPuWkp+WNjui2heW4gjwvdGV4dD4KPC9zdmc+",
+    lat: -43.53,
+    lng: 172.60,
+    phone: "+64 3 348 3288",
+    hours: "8:00 AM - 9:00 PM",
+    rating: 4.5
+  },
+  {
+    id: 10,
     name_en: "Four Square Addington",
-    name_zh: "四方超市",
+    name_zh: "Four Square Addington",
     location: "Addington",
-    logo_url: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=200&h=200&fit=crop&crop=center",
+    logo_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjMDA3RkZGIiByeD0iMTAiLz4KPCEtLSBGb3VyIFNxdWFyZSBHZW9tZXRyaWMgTG9nbyAtLT4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTAsIDUwKSI+CjxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSIgZmlsbD0iI0ZGRkZGRiIgcng9IjUiLz4KPHJlY3QgeD0iNTUiIHk9IjAiIHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSIgZmlsbD0iI0ZGRkZGRiIgcng9IjUiLz4KPHJlY3QgeD0iMCIgeT0iNTUiIHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSIgZmlsbD0iI0ZGRkZGRiIgcng9IjUiLz4KPHJlY3QgeD0iNTUiIHk9IjU1IiB3aWR0aD0iNDUiIGhlaWdodD0iNDUiIGZpbGw9IiNGRkZGRkYiIHJ4PSI1Ii8+CjwvZz4KPHRleHQgeD0iMTAwIiB5PSIxNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRkZGRkYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iMTYiPkZPVVI8L3RleHQ+Cjx0ZXh0IHg9IjEwMCIgeT0iMTY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkZGRkZGIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjE2Ij5TUVVBUkU8L3RleHQ+Cjwvc3ZnPg==",
     lat: -43.545,
     lng: 172.595,
     phone: "+64 3 338 2020",
     hours: "7:00 AM - 9:00 PM",
     rating: 4.0
+  },
+  // 更多华人超市
+  {
+    id: 11,
+    name_en: "Asia Mart Riccarton",
+    name_zh: "亚洲超市",
+    location: "Riccarton",
+    logo_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRkYwMDUwIiByeD0iMTAiLz4KPCEtLSBBc2lhIE1hcnQgRGVzaWduIC0tPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0MCwgNDApIj4KPGNpcmNsZSBjeD0iNjAiIGN5PSI2MCIgcj0iNDAiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0iI0ZGMDA1MCIgc3Ryb2tlLXdpZHRoPSI0Ii8+CjxwYXRoIGQ9Ik0zNSA2MEg4NU01MCAzNUw2MCA2MEw3MCA4NU01MCA4NUw2MCA2MEw3MCAzNSIgc3Ryb2tlPSIjRkYwMDUwIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiLz4KPC9nPgo8dGV4dCB4PSIxMDAiIHk9IjE0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZGRkZGRiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iYm9sZCIgZm9udC1zaXplPSIxOCI+QVNJQTwvdGV4dD4KPHRleHQgeD0iMTAwIiB5PSIxNjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRkZGRkYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCI+TUFSVDU8L3RleHQ+Cjwvc3ZnPg==",
+    lat: -43.532,
+    lng: 172.608,
+    phone: "+64 3 348 1888",
+    hours: "9:00 AM - 9:00 PM",
+    rating: 4.3
+  },
+  {
+    id: 12,
+    name_en: "Golden Dragon Supermarket",
+    name_zh: "金龙超市",
+    location: "Ilam",
+    logo_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRkZEODAwIiByeD0iMTAiLz4KPCEtLSBEcmFnb24gVGhlbWVkIExvZ28gLS0+CjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDMwLCAzMCkiPgo8cGF0aCBkPSJNNzAgNDBRMzAgNDAgMzAgNzBRMzAgMTAwIDcwIDEwMFExMTAgMTAwIDExMCA3MFExMTAgNDAgNzAgNDBaIiBmaWxsPSIjREMxNDJDIi8+CjxlbGxpcHNlIGN4PSI1NSIgY3k9IjYwIiByeD0iOCIgcnk9IjEyIiBmaWxsPSIjRkZEODAwIi8+CjxlbGxpcHNlIGN4PSI4NSIgY3k9IjYwIiByeD0iOCIgcnk9IjEyIiBmaWxsPSIjRkZEODAwIi8+CjxwYXRoIGQ9Ik00MCA4MEw1MCA5MEw2MCA4MEw3MCA5MEw4MCA4MEw5MCA5MEwxMDAgODBROTAgODUgNzAgODVRNTAgODUgNDAgODBaIiBmaWxsPSIjREMxNDJDIi8+CjwvZz4KPHRleHQgeD0iMTAwIiB5PSIxNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEQzE0MkMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iMTYiPkdPTERFTjwvdGV4dD4KPHRleHQgeD0iMTAwIiB5PSIxNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEQzE0MkMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iMTYiPkRSQUdPTjwvdGV4dD4KPC9zdmc+",
+    lat: -43.525,
+    lng: 172.590,
+    phone: "+64 3 358 6666",
+    hours: "9:00 AM - 8:00 PM",
+    rating: 4.4
   }
 ];
 
@@ -414,6 +451,158 @@ export const mockProducts: Product[] = [
     origin: "Canterbury",
     freshness: "Grade A",
     rating: 4.3
+  },
+  // 华人超市商品 - Tai Wah Supermarket (ID: 9)
+  {
+    id: 21,
+    name_en: "Chinese Cabbage",
+    name_zh: "白菜",
+    image: "https://images.unsplash.com/photo-1594282486552-05b4d80fbb9f?w=300&h=300&fit=crop&crop=center",
+    price: 3.99,
+    unit: "NZD/each",
+    supermarket_id: 9,
+    category: "vegetable",
+    updated_at: "2025-01-20",
+    origin: "New Zealand",
+    freshness: "Premium",
+    rating: 4.6
+  },
+  {
+    id: 22,
+    name_en: "Jasmine Rice",
+    name_zh: "茉莉香米",
+    image: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=300&h=300&fit=crop&crop=center",
+    price: 12.99,
+    originalPrice: 15.99,
+    unit: "NZD/5kg",
+    supermarket_id: 9,
+    category: "grain",
+    updated_at: "2025-01-19",
+    isSpecial: true,
+    specialEndDate: "2025-01-26",
+    discount: 19,
+    origin: "Thailand",
+    freshness: "Premium",
+    rating: 4.8
+  },
+  {
+    id: 23,
+    name_en: "Fresh Tofu",
+    name_zh: "新鲜豆腐",
+    image: "https://images.unsplash.com/photo-1545224144-b38cd309ef69?w=300&h=300&fit=crop&crop=center",
+    price: 4.50,
+    unit: "NZD/500g",
+    supermarket_id: 9,
+    category: "dairy",
+    updated_at: "2025-01-20",
+    origin: "New Zealand",
+    freshness: "Premium",
+    rating: 4.5
+  },
+  // Four Square Addington (ID: 10)
+  {
+    id: 24,
+    name_en: "Local Honey",
+    name_zh: "本地蜂蜜",
+    image: "https://images.unsplash.com/photo-1558642891-54be180ea339?w=300&h=300&fit=crop&crop=center",
+    price: 18.99,
+    unit: "NZD/500g",
+    supermarket_id: 10,
+    category: "condiment",
+    updated_at: "2025-01-18",
+    origin: "Canterbury",
+    freshness: "Premium",
+    rating: 4.7
+  },
+  // Asia Mart Riccarton (ID: 11)
+  {
+    id: 25,
+    name_en: "Soy Sauce",
+    name_zh: "生抽",
+    image: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=300&h=300&fit=crop&crop=center",
+    price: 5.99,
+    unit: "NZD/500ml",
+    supermarket_id: 11,
+    category: "condiment",
+    updated_at: "2025-01-20",
+    origin: "Japan",
+    freshness: "Premium",
+    rating: 4.9
+  },
+  {
+    id: 26,
+    name_en: "Bok Choy",
+    name_zh: "小白菜",
+    image: "https://images.unsplash.com/photo-1606668956188-e0b8f6ed0733?w=300&h=300&fit=crop&crop=center",
+    price: 2.99,
+    unit: "NZD/bunch",
+    supermarket_id: 11,
+    category: "vegetable",
+    updated_at: "2025-01-20",
+    origin: "New Zealand",
+    freshness: "Grade A",
+    rating: 4.4
+  },
+  {
+    id: 27,
+    name_en: "Ramen Noodles",
+    name_zh: "拉面",
+    image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=300&h=300&fit=crop&crop=center",
+    price: 3.50,
+    originalPrice: 4.50,
+    unit: "NZD/pack",
+    supermarket_id: 11,
+    category: "grain",
+    updated_at: "2025-01-19",
+    isSpecial: true,
+    specialEndDate: "2025-01-25",
+    discount: 22,
+    origin: "Japan",
+    freshness: "Grade A",
+    rating: 4.6
+  },
+  // Golden Dragon Supermarket (ID: 12)
+  {
+    id: 28,
+    name_en: "Duck Breast",
+    name_zh: "鸭胸肉",
+    image: "https://images.unsplash.com/photo-1580922403669-34b1b6b1f9b7?w=300&h=300&fit=crop&crop=center",
+    price: 24.99,
+    unit: "NZD/kg",
+    supermarket_id: 12,
+    category: "meat",
+    updated_at: "2025-01-20",
+    origin: "New Zealand",
+    freshness: "Premium",
+    rating: 4.8
+  },
+  {
+    id: 29,
+    name_en: "Shiitake Mushrooms",
+    name_zh: "香菇",
+    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=300&h=300&fit=crop&crop=center",
+    price: 8.99,
+    unit: "NZD/250g",
+    supermarket_id: 12,
+    category: "vegetable",
+    updated_at: "2025-01-19",
+    origin: "New Zealand",
+    freshness: "Premium",
+    rating: 4.7
+  },
+  {
+    id: 30,
+    name_en: "Green Tea",
+    name_zh: "绿茶",
+    image: "https://images.unsplash.com/photo-1563822249548-9a72b6353cd1?w=300&h=300&fit=crop&crop=center",
+    price: 12.99,
+    unit: "NZD/100g",
+    supermarket_id: 12,
+    category: "beverage",
+    updated_at: "2025-01-18",
+    origin: "China",
+    freshness: "Premium",
+    rating: 4.5
   }
 ];
 

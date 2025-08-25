@@ -21,7 +21,7 @@ export interface Product {
   unit: string;
   supermarket_id: number;
   supermarket?: Supermarket;
-  category: 'vegetable' | 'fruit' | 'meat' | 'seafood' | 'dairy';
+  category: 'vegetable' | 'fruit' | 'meat' | 'seafood' | 'dairy' | 'grain' | 'condiment' | 'beverage';
   updated_at: string;
   isSpecial?: boolean;
   specialEndDate?: string;
@@ -72,7 +72,7 @@ export interface RegisterData {
 }
 
 export type Language = 'en' | 'zh';
-export type Category = 'all' | 'vegetable' | 'fruit' | 'meat' | 'seafood' | 'dairy';
+export type Category = 'all' | 'vegetable' | 'fruit' | 'meat' | 'seafood' | 'dairy' | 'grain' | 'condiment' | 'beverage';
 export type SortBy = 'price_asc' | 'price_desc' | 'updated' | 'name';
 
 export interface UserStats {

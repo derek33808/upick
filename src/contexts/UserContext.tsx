@@ -143,27 +143,51 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     setIsLoading(true);
     try {
-      // 准备加载任务列表
-      const tasks = [
-        refreshFavorites(),
-        refreshCart(),
-        refreshProductFavorites(),
-        refreshStoreFavorites(),
-        !isDemoMode ? refreshPriceAlerts() : Promise.resolve()
-      ];
+      console.log('👤 [USER] Loading user data for:', user.email);
       
-      // 加载用户数据，但不让单个失败阻止其他数据加载
-      const results = await Promise.allSettled(tasks);
+      // 如果是演示模式，优先使用本地数据
+      if (isDemoMode) {
+        console.log('🎭 [USER] Demo mode - loading local data only');
+        await Promise.allSettled([
+          refreshFavorites(),
+          refreshCart(),
+          refreshProductFavorites(),
+          refreshStoreFavorites()
+        ]);
+        setIsLoading(false);
+        return;
+      }
       
-      // 记录失败的操作，但不抛出错误
-      results.forEach((result, index) => {
-        if (result.status === 'rejected') {
-          const operations = isDemoMode 
-            ? ['favorites', 'cart', 'product favorites', 'store favorites'] 
-            : ['favorites', 'cart', 'price alerts', 'product favorites', 'store favorites'];
-          console.warn(`⚠️ Failed to load ${operations[index]}:`, result.reason);
+      // 非演示模式 - 使用延迟加载减少初始连接
+      setTimeout(async () => {
+        try {
+          // 准备加载任务列表，只加载基本数据
+          const basicTasks = [
+            refreshFavorites().catch(() => console.warn('⚠️ Failed to load favorites')),
+            refreshCart().catch(() => console.warn('⚠️ Failed to load cart'))
+          ];
+          
+          // 基本数据加载
+          await Promise.allSettled(basicTasks);
+          
+          // 延迟加载附加数据
+          setTimeout(async () => {
+            try {
+              await Promise.allSettled([
+                refreshProductFavorites().catch(() => console.warn('⚠️ Failed to load product favorites')),
+                refreshStoreFavorites().catch(() => console.warn('⚠️ Failed to load store favorites')),
+                refreshPriceAlerts().catch(() => console.warn('⚠️ Failed to load price alerts'))
+              ]);
+            } catch (error) {
+              console.warn('⚠️ [USER] Failed to load additional data:', error);
+            }
+          }, 500); // 延迟500ms加载附加数据
+          
+        } catch (error) {
+          console.warn('⚠️ [USER] Failed to load basic user data:', error);
         }
-      });
+      }, 200); // 延迟200ms开始加载用户数据
+      
     } catch (error) {
       console.error('❌ [USER] Load user data failed:', error);
     } finally {
