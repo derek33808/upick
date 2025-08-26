@@ -29,7 +29,8 @@ export class DemoUserData {
       // Check if already exists
       const exists = this.favorites.some(f => f.user_id === userId && f.product_id === productId);
       if (exists) {
-        return { success: false, error: 'Already in favorites' };
+        // Idempotent behavior: treat as success to match backend unique constraint handling
+        return { success: true };
       }
 
       const favorite: DemoFavorite = {

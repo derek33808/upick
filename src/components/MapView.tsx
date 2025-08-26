@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, Navigation, Phone, Clock, Star, Zap, Tag, Plus, Minus } from 'lucide-react';
+import { MapPin, Navigation, Phone, Clock, Star, Zap, Tag, Plus, Minus, LocateFixed, Pause } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { Supermarket } from '../types';
 
@@ -23,6 +23,14 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+
+  // Geolocation state
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [watching, setWatching] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const watchIdRef = useRef<number | null>(null);
+  const userMarkerRef = useRef<any>(null);
+  const accuracyCircleRef = useRef<any>(null);
 
   // Debug: 检查超市数据
   useEffect(() => {
@@ -137,8 +145,24 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
     loadLeaflet();
 
     return () => {
-      // Cleanup map instance
+      // Stop geolocation watching
+      if (watchIdRef.current !== null) {
+        try { navigator.geolocation.clearWatch(watchIdRef.current); } catch {}
+        watchIdRef.current = null;
+      }
+      // Cleanup user layers first
       if (mapInstanceRef.current) {
+        try {
+          if (userMarkerRef.current) {
+            mapInstanceRef.current.removeLayer(userMarkerRef.current);
+            userMarkerRef.current = null;
+          }
+          if (accuracyCircleRef.current) {
+            mapInstanceRef.current.removeLayer(accuracyCircleRef.current);
+            accuracyCircleRef.current = null;
+          }
+        } catch {}
+        // Cleanup map instance
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
@@ -362,6 +386,11 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
     window.open(`tel:${phone}`, '_self');
   };
 
+  const handleViewLocation = (supermarket: Supermarket) => {
+    const url = `https://www.google.com/maps/search/?api=1&query=${supermarket.lat},${supermarket.lng}`;
+    window.open(url, '_blank');
+  };
+
   const handleZoomIn = () => {
     if (mapInstanceRef.current) {
       mapInstanceRef.current.zoomIn();
@@ -372,6 +401,114 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
     if (mapInstanceRef.current) {
       mapInstanceRef.current.zoomOut();
     }
+  };
+
+  // Distance helpers
+  const getDistanceKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+    const R = 6371;
+    const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+    const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+    const lat1 = (a.lat * Math.PI) / 180;
+    const lat2 = (b.lat * Math.PI) / 180;
+    const sinDLat = Math.sin(dLat / 2);
+    const sinDLng = Math.sin(dLng / 2);
+    const c = 2 * Math.asin(Math.sqrt(sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLng * sinDLng));
+    return R * c;
+  };
+
+  const formatDistance = (km: number) => (km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`);
+
+  // User location rendering
+  const showOrUpdateUserLocation = (lat: number, lng: number, accuracy?: number) => {
+    if (!mapInstanceRef.current || !window.L) return;
+    const map = mapInstanceRef.current;
+
+    if (!userMarkerRef.current) {
+      const icon = window.L.divIcon({
+        className: 'user-location-icon',
+        html: `
+          <div class="user-dot"></div>
+          <div class="user-pulse"></div>
+        `,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      userMarkerRef.current = window.L.marker([lat, lng], { icon }).addTo(map);
+    } else {
+      userMarkerRef.current.setLatLng([lat, lng]);
+    }
+
+    if (typeof accuracy === 'number') {
+      if (!accuracyCircleRef.current) {
+        accuracyCircleRef.current = window.L.circle([lat, lng], {
+          radius: accuracy,
+          color: '#3b82f6',
+          weight: 1,
+          fillColor: '#93c5fd',
+          fillOpacity: 0.2
+        }).addTo(map);
+      } else {
+        accuracyCircleRef.current.setLatLng([lat, lng]);
+        accuracyCircleRef.current.setRadius(accuracy);
+      }
+    }
+  };
+
+  const locateOnce = () => {
+    if (!navigator.geolocation) {
+      alert(language === 'zh' ? '当前浏览器不支持定位' : 'Geolocation not supported');
+      return;
+    }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        const loc = { lat: latitude, lng: longitude };
+        setUserLocation(loc);
+        showOrUpdateUserLocation(latitude, longitude, accuracy);
+        if (mapInstanceRef.current) {
+          const nextZoom = Math.max(14, mapInstanceRef.current.getZoom() || 11);
+          mapInstanceRef.current.setView([latitude, longitude], nextZoom);
+        }
+        setGeoLoading(false);
+      },
+      (err) => {
+        console.error('Geolocation error', err);
+        alert(err.code === 1 ? (language === 'zh' ? '定位权限被拒绝' : 'Permission denied') : (language === 'zh' ? '定位失败' : 'Failed to locate'));
+        setGeoLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
+  const toggleTracking = () => {
+    if (!navigator.geolocation) {
+      alert(language === 'zh' ? '当前浏览器不支持定位' : 'Geolocation not supported');
+      return;
+    }
+    if (watching) {
+      if (watchIdRef.current !== null) {
+        try { navigator.geolocation.clearWatch(watchIdRef.current); } catch {}
+        watchIdRef.current = null;
+      }
+      setWatching(false);
+      return;
+    }
+    const id = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        const loc = { lat: latitude, lng: longitude };
+        setUserLocation(loc);
+        showOrUpdateUserLocation(latitude, longitude, accuracy);
+      },
+      (err) => {
+        console.error('watchPosition error', err);
+        alert(err.code === 1 ? (language === 'zh' ? '定位权限被拒绝' : 'Permission denied') : (language === 'zh' ? '定位失败' : 'Failed to locate'));
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 }
+    );
+    watchIdRef.current = id;
+    setWatching(true);
   };
 
   const retryLoadMap = () => {
@@ -476,6 +613,27 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
             </button>
           </div>
         )}
+
+        {/* Geolocation Controls */}
+        {mapLoaded && (
+          <div className="absolute top-4 left-4 flex flex-col space-y-1" style={{ zIndex: 10 }}>
+            <button
+              onClick={locateOnce}
+              disabled={geoLoading}
+              className={`w-10 h-10 ${geoLoading ? 'opacity-60' : ''} bg-white border-2 border-gray-300 rounded-lg shadow-xl hover:bg-gray-50 hover:border-primary-500 flex items-center justify-center transition-all duration-200 active:scale-95`}
+              title={language === 'zh' ? '定位到我' : 'Locate Me'}
+            >
+              <LocateFixed className="w-5 h-5 text-blue-600" />
+            </button>
+            <button
+              onClick={toggleTracking}
+              className={`w-10 h-10 ${watching ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-300'} border-2 rounded-lg shadow-xl hover:bg-gray-50 hover:border-primary-500 flex items-center justify-center transition-all duration-200 active:scale-95`}
+              title={watching ? (language === 'zh' ? '停止跟踪' : 'Stop Tracking') : (language === 'zh' ? '开始跟踪' : 'Track Me')}
+            >
+              {watching ? <Pause className="w-5 h-5 text-blue-700" /> : <LocateFixed className="w-5 h-5 text-gray-700" />}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Supermarket List */}
@@ -535,6 +693,19 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
                       </span>
                     </div>
                   )}
+                  {userLocation && Number.isFinite(supermarket.lat) && Number.isFinite(supermarket.lng) && (
+                    <div className="flex items-center space-x-1">
+                      <MapPin className="w-4 h-4" />
+                      <span>
+                        {text[language].distance}: {formatDistance(
+                          getDistanceKm(
+                            userLocation,
+                            { lat: supermarket.lat, lng: supermarket.lng }
+                          )
+                        )}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 
                 {/* Special products count */}
@@ -556,6 +727,19 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
               </div>
 
               <div className="flex items-center space-x-2">
+                {/* 新增：位置查看按钮 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewLocation(supermarket);
+                  }}
+                  className="p-2 text-green-600 hover:bg-green-100 rounded-full transition-colors"
+                  title={language === 'en' ? 'View on Google Maps' : '在Google地图中查看'}
+                >
+                  <MapPin className="w-5 h-5" />
+                </button>
+                
+                {/* 现有：导航按钮 */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -566,6 +750,8 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
                 >
                   <Navigation className="w-5 h-5" />
                 </button>
+                
+                {/* 现有：电话按钮 */}
                 {supermarket.phone && (
                   <button
                     onClick={(e) => {
@@ -637,6 +823,17 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
           50% {
             opacity: 0.5;
           }
+        }
+
+        /* User location styles */
+        .user-location-icon { position: relative; width: 20px; height: 20px; }
+        .user-location-icon .user-dot {
+          position: absolute; width: 10px; height: 10px; border-radius: 50%;
+          background: #2563eb; top: 5px; left: 5px; box-shadow: 0 0 0 2px #bfdbfe;
+        }
+        .user-location-icon .user-pulse {
+          position: absolute; width: 20px; height: 20px; border-radius: 50%;
+          background: rgba(59, 130, 246, 0.25); animation: pulse 2s infinite;
         }
       `}</style>
     </div>

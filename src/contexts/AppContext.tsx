@@ -2,12 +2,14 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Language, Product, Supermarket } from '../types';
 import { supabase } from '../lib/supabase';
 import { mockProducts, mockSupermarkets } from '../data/mockData';
+import { SupermarketService } from '../services/SupermarketService';
 
 interface AppContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   products: Product[];
   supermarkets: Supermarket[];
+  productsFromDb: boolean;
   favoriteProducts: number[];
   toggleFavorite: (productId: number) => void;
   searchTerm: string;
@@ -29,6 +31,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguage] = useState<Language>('en');
   const [products, setProducts] = useState<Product[]>([]);
   const [supermarkets, setSupermarkets] = useState<Supermarket[]>([]);
+  const [productsFromDb, setProductsFromDb] = useState<boolean>(false);
   const [favoriteProducts, setFavoriteProducts] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -325,66 +328,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const loadSupermarkets = async () => {
     try {
-      // 检查Supabase是否可用
-      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-        console.warn('⚠️ Supabase环境变量未配置，使用mock数据');
-        setSupermarkets(mockSupermarkets);
-        return false;
-      }
+      console.log('🏪 开始从数据库加载超市数据...');
       
-      console.log('🏪 开始加载超市数据...');
+      const supermarketsData = await SupermarketService.getAllSupermarkets();
       
-      // 设置8秒超时，给数据库更多时间响应
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-      
-      const { data, error } = await supabase
-        .from('supermarkets')
-        .select('*')
-        .order('name_en')
-        .abortSignal(controller.signal);
-      
-      clearTimeout(timeoutId);
-
-      if (error) {
-        console.warn('⚠️ 加载超市数据失败:', error.message);
-        if (error.code === '42501' || error.message.includes('permission denied')) {
-          console.warn('⚠️ 权限问题，请检查RLS策略');
-        }
-        setSupermarkets(mockSupermarkets);
-        return false;
-      }
-
-      if (!data || data.length === 0) {
-        console.log('📋 数据库中没有超市数据');
-        setSupermarkets(mockSupermarkets);
-        return false;
-      }
-
-      const transformedSupermarkets: Supermarket[] = data.map(item => ({
-        id: item.id,
-        name_en: item.name_en,
-        name_zh: item.name_zh,
-        location: item.location,
-        logo_url: item.logo_url || '',
-        lat: parseFloat(item.latitude.toString()),
-        lng: parseFloat(item.longitude.toString()),
-        phone: item.phone,
-        hours: item.hours,
-        rating: item.rating ? parseFloat(item.rating.toString()) : undefined
-      }));
-
-      setSupermarkets(transformedSupermarkets);
-      console.log('✅ 成功加载', transformedSupermarkets.length, '个超市');
-      return true;
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.warn('⚠️ 加载超市数据超时 (8秒)');
-      } else if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.warn('⚠️ 网络连接异常，无法加载超市数据');
+      if (supermarketsData.length > 0) {
+        setSupermarkets(supermarketsData);
+        console.log('✅ 成功从数据库加载', supermarketsData.length, '个超市');
+        return true;
       } else {
-        console.warn('⚠️ 加载超市时出现异常:', error);
+        console.log('📋 数据库中没有超市数据，使用mock数据');
+        setSupermarkets(mockSupermarkets);
+        return false;
       }
+    } catch (error) {
+      console.warn('⚠️ 加载超市数据失败，使用mock数据:', error);
+      setSupermarkets(mockSupermarkets);
       return false;
     }
   };
@@ -395,6 +354,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
         console.warn('⚠️ Supabase环境变量未配置，使用mock数据');
         setProducts(mockProducts);
+        setProductsFromDb(false);
         return false;
       }
       
@@ -419,12 +379,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           console.warn('⚠️ 权限问题，请检查RLS策略');
         }
         setProducts(mockProducts);
+        setProductsFromDb(false);
         return false;
       }
 
       if (!data || data.length === 0) {
         console.log('📋 数据库中没有商品数据');
         setProducts(mockProducts);
+        setProductsFromDb(false);
         return false;
       }
 
@@ -449,6 +411,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }));
 
       setProducts(transformedProducts);
+      setProductsFromDb(true);
       console.log('✅ 数据加载完成');
       return true;
     } catch (error) {
@@ -459,6 +422,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } else {
         console.warn('⚠️ 加载商品时出现异常:', error);
       }
+      setProductsFromDb(false);
       return false;
     }
   };
@@ -469,44 +433,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       setConnectionStatus('connecting');
       
-      // 1. 优先尝试数据库连接和数据加载
+      // 1. 直接尝试从数据库加载数据
       try {
-        console.log('🔌 优先尝试数据库连接...');
-        const connectionTest = await testConnection();
+        console.log('🔌 尝试从数据库加载数据...');
         
-        if (connectionTest) {
-          console.log('✅ 数据库连接成功，加载数据库数据...');
-          
-          // 尝试同步mock数据到数据库（非阻塞）
-          syncMockDataToDatabase().catch(error => {
-            console.warn('⚠️ 后台数据同步失败:', error);
-          });
-          
-          // 从数据库加载数据，设置10秒超时
-          const loadPromise = Promise.all([
-            loadSupermarkets(),
-            loadProducts()
-          ]);
-          
-          // 设置10秒超时
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Database load timeout')), 10000);
-          });
-          
-          const [supermarketsLoaded, productsLoaded] = await Promise.race([
-            loadPromise,
-            timeoutPromise
-          ]) as [boolean, boolean];
-          
-          if (supermarketsLoaded && productsLoaded) {
-            setConnectionStatus('connected');
-            console.log('✅ 数据库数据加载成功');
-            return; // 成功加载数据库数据，直接返回
-          } else {
-            throw new Error('Failed to load database data');
-          }
+        const supermarketsLoaded = await loadSupermarkets();
+        const productsLoaded = await loadProducts();
+        
+        if (supermarketsLoaded || productsLoaded) {
+          setConnectionStatus('connected');
+          console.log('✅ 数据库数据加载成功');
+          return; // 成功加载数据库数据，直接返回
         } else {
-          throw new Error('Database connection failed');
+          throw new Error('Failed to load database data');
         }
       } catch (error) {
         console.warn('⚠️ 数据库访问失败或超时，回退到mock数据:', error);
@@ -515,6 +454,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setConnectionStatus('fallback');
         setSupermarkets(mockSupermarkets);
         setProducts(mockProducts);
+        setProductsFromDb(false);
         console.log('✅ Mock数据已加载作为回退方案');
       }
     } catch (error) {
@@ -585,6 +525,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLanguage,
       products,
       supermarkets,
+      productsFromDb,
       favoriteProducts,
       toggleFavorite,
       searchTerm,

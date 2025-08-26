@@ -1,4 +1,4 @@
-import { Carrot, Apple, Beef, Milk, Egg, Store, Heart } from 'lucide-react';
+import { Carrot, Apple, Beef, Milk, Egg, Heart, ChevronDown, ChevronUp, MapPin } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
@@ -47,7 +47,7 @@ const categories = [
 ];
 
 export function CategoryGrid({ onCategoryClick }: CategoryGridProps) {
-  const { language, products } = useApp();
+  const { language, products, supermarkets } = useApp();
 
   const text = {
     en: {
@@ -146,7 +146,7 @@ export function CategoryGrid({ onCategoryClick }: CategoryGridProps) {
           </div>
           <div>
             <div className="text-3xl font-bold text-blue-600">
-              {new Set(products.map(p => p.supermarket_id)).size}
+              {supermarkets.length}
             </div>
             <div className={`text-sm text-gray-600 ${language === 'zh' ? 'font-chinese' : ''}`}>
               {language === 'en' ? 'Supermarkets' : '家超市'}
@@ -165,58 +165,198 @@ export function CategoryGrid({ onCategoryClick }: CategoryGridProps) {
 
       {/* Supermarket groups with favorites */}
       <div className="mt-12">
-        <h2 className={`text-2xl font-bold text-gray-900 mb-4 ${language === 'zh' ? 'font-chinese' : ''}`}>
-          {language === 'en' ? 'Browse by Supermarket' : '按超市浏览'}
-        </h2>
-        {/* 预计算唯一超市列表（避免在渲染中调用 hooks） */}
-        {(() => {
-          const list = products.map(p => p.supermarket).filter(Boolean) as any[];
-          const uniqueStores = Array.from(new Map(list.map(s => [s.id, s])).values());
-          const regions: Array<{key:'north'|'south'; name:string; stores:any[]}> = [
-            { key: 'north', name: language==='en'?'North Area':'北区', stores: uniqueStores.filter((s: any) => s.lat > -43.5) },
-            { key: 'south', name: language==='en'?'South Area':'南区', stores: uniqueStores.filter((s: any) => s.lat <= -43.5) }
-          ];
-          return (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {regions.map(({key, name, stores}) => {
-                const regionKey = key;
-                const regionStores = stores;
-                const regionName = name;
-            return (
-              <div key={regionKey} className="bg-white rounded-2xl border border-gray-200 p-4">
-                <div className="flex items-center mb-3">
-                  <Store className="w-5 h-5 text-gray-500 mr-2" />
-                  <h3 className={`text-lg font-semibold ${language === 'zh' ? 'font-chinese' : ''}`}>{regionName}</h3>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {regionStores.map((s: any) => {
-                    return (
-                      <div key={s.id} className="flex items-center justify-between p-3 rounded-xl border hover:shadow-sm">
-                        <div className="flex items-center space-x-3">
-                          <img 
-                            src={s.logo_url} 
-                            alt={language==='en'? s.name_en : s.name_zh}
-                            className="w-8 h-8 rounded-full object-cover bg-gradient-to-br from-blue-500 to-purple-600"
-                            onError={(e) => {
-                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZGllbnQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgo8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM0I4MkY2O3N0b3Atb3BhY2l0eToxIiAvPgo8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4QjVDRjY7c3RvcC1vcGFjaXR5OjEiIC8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSJ1cmwoI2dyYWRpZW50KSIgcng9IjE2Ii8+Cjxzdmcgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiB4PSI4IiB5PSI4IiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj4KPHBhdGggZD0iTTIgN2MwIC42MDMuNjkgMSAxLjIyNyAxYTEuMSAxLjEgMCAwIDAgMS4wNzgtLjYgNC44IDAgMCAwIDEuMDMtLjhMOCAzTTIwIDdIOHYwMy4zODYtLjg2NmEuNS41IDAgMCAxIC41LS41SDl2NC42YTIgMiAwIDEgMSA0IDB2LTJNOSA3LjV2NCIvPgo8L3N2Zz4KPC9zdmc+';
-                            }}
-                          />
-                          <div>
-                            <div className="font-medium text-gray-900">{language==='en'? s.name_en : s.name_zh}</div>
-                            <div className="text-xs text-gray-500">{s.location}</div>
-                          </div>
-                        </div>
-                        <StoreSaveButton storeId={s.id} language={language} />
-                      </div>
-                    );
-                  })}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className={`text-2xl font-bold text-gray-900 ${language === 'zh' ? 'font-chinese' : ''}`}>
+            {language === 'en' ? 'Browse by Supermarket' : '按超市浏览'}
+          </h2>
+          <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+            {language === 'en' ? 'Updated Database' : '数据库已更新'}
+          </div>
+        </div>
+        <SupermarketBrandGroups supermarkets={supermarkets} language={language} />
+      </div>
+    </div>
+  );
+}
+
+// 超市品牌分组组件
+function SupermarketBrandGroups({ supermarkets, language }: { supermarkets: any[]; language: 'en' | 'zh' }) {
+  const [expandedBrands, setExpandedBrands] = useState<string[]>(['Woolworths (Countdown)', 'New World']); // 默认展开前两个
+
+  // 定义品牌分类逻辑
+  const getBrandFromName = (name: string): string => {
+    if (name.includes('Woolworths') || name.includes('Countdown')) return 'Woolworths (Countdown)';
+    if (name.includes('New World')) return 'New World';
+    if (name.includes('Pak\'nSave') || name.includes('PAK\'nSAVE')) return 'Pak\'nSave';
+    if (name.includes('FreshChoice')) return 'FreshChoice';
+    // 将所有亚洲相关超市归类为"亚洲超市"
+    if (name.includes('大华') || name.includes('Lucky') || name.includes('China Town') || name.includes('华人') || 
+        name.includes('Tai Wah') || name.includes('Big T Asian') || name.includes('Korean') || 
+        name.includes('韩国') || name.includes('Ken\'s Mart') || name.includes('Asian') || 
+        name.includes('亚洲') || name.includes('Basics Asian')) return 'Asian Supermarkets';
+    // Four Square和其他未分类的超市都归入"其他超市"
+    return '其他超市';
+  };
+
+  // 按品牌分组超市
+  const brandGroups = supermarkets.reduce((acc, supermarket) => {
+    const brand = getBrandFromName(supermarket.name_en);
+    if (!acc[brand]) acc[brand] = [];
+    acc[brand].push(supermarket);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  // 定义品牌颜色和图标
+  const brandStyles: Record<string, {color: string; bgColor: string; icon: string}> = {
+    'Woolworths (Countdown)': { color: 'text-green-700', bgColor: 'bg-green-50 border-green-200', icon: '🛒' },
+    'New World': { color: 'text-blue-700', bgColor: 'bg-blue-50 border-blue-200', icon: '🌍' },
+    'Pak\'nSave': { color: 'text-yellow-700', bgColor: 'bg-yellow-50 border-yellow-200', icon: '💰' },
+    'FreshChoice': { color: 'text-cyan-700', bgColor: 'bg-cyan-50 border-cyan-200', icon: '🥬' },
+    'Asian Supermarkets': { color: 'text-orange-700', bgColor: 'bg-orange-50 border-orange-200', icon: '🍜' },
+    '其他超市': { color: 'text-gray-700', bgColor: 'bg-gray-50 border-gray-200', icon: '🏪' }
+  };
+
+  // 品牌名称多语言支持
+  const getBrandDisplayName = (brand: string): string => {
+    const brandNames: Record<string, Record<string, string>> = {
+      'Woolworths (Countdown)': { en: 'Woolworths (Countdown)', zh: 'Woolworths (Countdown)' },
+      'New World': { en: 'New World', zh: 'New World' },
+      'Pak\'nSave': { en: 'Pak\'nSave', zh: 'Pak\'nSave' },
+      'FreshChoice': { en: 'FreshChoice', zh: 'FreshChoice' },
+      'Asian Supermarkets': { en: 'Asian Supermarkets', zh: '亚洲超市' },
+      '其他超市': { en: 'Other Stores', zh: '其他超市' }
+    };
+    return brandNames[brand]?.[language] || brand;
+  };
+
+  // 定义品牌排序顺序，其他超市放最后
+  const brandOrder = ['Woolworths (Countdown)', 'New World', 'Pak\'nSave', 'FreshChoice', 'Asian Supermarkets', '其他超市'];
+
+  const sortedBrandEntries = Object.entries(brandGroups).sort(([a], [b]) => {
+    const indexA = brandOrder.indexOf(a);
+    const indexB = brandOrder.indexOf(b);
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  });
+
+  const toggleBrand = (brand: string) => {
+    setExpandedBrands(prev => 
+      prev.includes(brand) 
+        ? prev.filter(b => b !== brand)
+        : [...prev, brand]
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {sortedBrandEntries.map(([brand, stores]) => {
+        const isExpanded = expandedBrands.includes(brand);
+        const style = brandStyles[brand] || brandStyles['其他超市'];
+        
+        return (
+          <div key={brand} className={`${style.bgColor} rounded-2xl border-2 overflow-hidden transition-all duration-300`}>
+            {/* 品牌头部 */}
+            <button
+              onClick={() => toggleBrand(brand)}
+              className={`w-full p-4 flex items-center justify-between hover:bg-opacity-80 transition-all duration-200 ${style.color}`}
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-2xl">{style.icon}</span>
+                <div className="text-left">
+                  <h3 className={`text-lg font-semibold ${language === 'zh' ? 'font-chinese' : ''}`}>
+                    {getBrandDisplayName(brand)}
+                  </h3>
+                  <p className="text-sm opacity-75">
+                    {(stores as any[]).length} {language === 'en' ? 'locations' : '家门店'}
+                  </p>
                 </div>
               </div>
-            );
-              })}
+              {isExpanded ? 
+                <ChevronUp className="w-5 h-5" /> : 
+                <ChevronDown className="w-5 h-5" />
+              }
+            </button>
+
+            {/* 超市列表 */}
+            {isExpanded && (
+              <div className="px-4 pb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {(stores as any[]).map((supermarket: any) => (
+                    <SupermarketCard 
+                      key={supermarket.id} 
+                      supermarket={supermarket} 
+                      language={language}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Google地图位置查看按钮组件
+function LocationButton({ supermarket, language }: { supermarket: any; language: 'en' | 'zh' }) {
+  const handleLocationClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (supermarket.lat && supermarket.lng) {
+      const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${supermarket.lat},${supermarket.lng}`;
+      window.open(googleMapsUrl, '_blank');
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleLocationClick}
+      className="p-1.5 rounded-full bg-green-100 text-green-700 hover:bg-green-200 transition-all duration-200 hover:scale-110 active:scale-95"
+      title={language === 'en' ? 'View on Google Maps' : '在Google地图中查看'}
+    >
+      <MapPin className="w-4 h-4" />
+    </button>
+  );
+}
+
+// 超市卡片组件
+function SupermarketCard({ supermarket, language }: { supermarket: any; language: 'en' | 'zh' }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all duration-200">
+      <div className="flex items-start space-x-3">
+        <img 
+          src={supermarket.logo_url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZGllbnQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgo8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM0I4MkY2O3N0b3Atb3BhY2l0eToxIiAvPgo8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4QjVDRjY7c3RvcC1vcGFjaXR5OjEiIC8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSJ1cmwoI2dyYWRpZW50KSIgcng9IjIwIi8+Cjxzdmcgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiB4PSIxMCIgeT0iMTAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgo8cGF0aCBkPSJNNiAyTDMgNnYxNGEyIDIgMCAwIDAgMiAyaDE0YTIgMiAwIDAgMCAyLTJWNmwtMy00eiIvPgo8cGF0aCBkPSJtOCA2IDQgNCIvPgo8L3N2Zz4KPC9zdmc+'} 
+          alt={language === 'en' ? supermarket.name_en : supermarket.name_zh}
+          className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+          onError={(e) => {
+            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZGllbnQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgo8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM0I4MkY2O3N0b3Atb3BhY2l0eToxIiAvPgo8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4QjVDRjY7c3RvcC1vcGFjaXR5OjEiIC8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSJ1cmwoI2dyYWRpZW50KSIgcng9IjIwIi8+Cjxzdmcgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiB4PSIxMCIgeT0iMTAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgo8cGF0aCBkPSJNNiAyTDMgNnYxNGEyIDIgMCAwIDAgMiAyaDE0YTIgMiAwIDAgMCAyLTJWNmwtMy00eiIvPgo8cGF0aCBkPSJtOCA2IDQgNCIvPgo8L3N2Zz4KPC9zdmc+';
+          }}
+        />
+        <div className="flex-1 min-w-0">
+          <h4 className={`font-medium text-gray-900 text-sm mb-1 ${language === 'zh' ? 'font-chinese' : ''}`}>
+            {language === 'en' ? supermarket.name_en : supermarket.name_zh}
+          </h4>
+          <div className="text-xs text-gray-600 leading-relaxed mb-2 break-words">
+            {supermarket.location}
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 text-xs text-gray-500">
+              {supermarket.rating && (
+                <span className="text-yellow-600">⭐ {supermarket.rating}</span>
+              )}
+              {supermarket.phone && (
+                <span className="text-gray-400">📞</span>
+              )}
             </div>
-          );
-        })()}
+            <div className="flex items-center space-x-1">
+              <LocationButton supermarket={supermarket} language={language} />
+              <StoreSaveButton storeId={supermarket.id} language={language} />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -230,73 +370,53 @@ function StoreSaveButton({ storeId, language }: { storeId: number; language: 'en
   // 直接计算当前收藏状态，避免状态同步问题
   const saved = checkIsStoreFavorite(storeId);
 
-  // 减少日志输出，避免控制台过多信息
-
   const handleClick = async (e: React.MouseEvent) => {
-    console.log(`[StoreSaveButton] 🔥 按钮被点击! storeId=${storeId}, saved=${saved}, saving=${saving}`);
     e.stopPropagation();
     
     if (!isAuthenticated || !user) {
-      console.log(`[StoreSaveButton] ❌ 用户未登录，显示登录弹窗`);
       window.dispatchEvent(new CustomEvent('showLoginModal'));
       return;
     }
     
-    if (saving) {
-      console.log(`[StoreSaveButton] ⏳ 正在保存中，忽略点击`);
-      return;
-    }
+    if (saving) return;
     
-    console.log(`[StoreSaveButton] 🚀 开始保存操作...`);
     setSaving(true);
     
     try {
       let result = false;
       if (saved) {
-        console.log(`[StoreSaveButton] 🗑️ 调用 removeFromStoreFavorites(${storeId})`);
         result = await removeFromStoreFavorites(storeId);
       } else {
-        console.log(`[StoreSaveButton] ➕ 调用 addToStoreFavorites(${storeId})`);
         result = await addToStoreFavorites(storeId);
       }
-      console.log(`[StoreSaveButton] 📋 操作结果: ${result ? '✅ 成功' : '❌ 失败'}`);
       
       if (result) {
-        // 强制刷新店铺收藏状态
-        console.log(`[StoreSaveButton] 🔄 强制刷新店铺收藏状态...`);
-        // 触发全局状态更新
         window.dispatchEvent(new CustomEvent('storeFavoritesUpdated'));
-        // 强制组件重新渲染来显示最新状态
-        setSaving(false);
-        setSaving(true);
-        setTimeout(() => setSaving(false), 100);
       }
     } catch (error) {
-      console.error(`[StoreSaveButton] 💥 操作异常:`, error);
+      console.error('收藏操作失败:', error);
     } finally {
       setSaving(false);
-      console.log(`[StoreSaveButton] 🏁 操作完成`);
     }
   };
 
-  
   return (
     <button
       type="button"
       onClick={handleClick}
-      className={`p-2 rounded-full transition-all duration-200 ${
+      className={`p-1.5 rounded-full transition-all duration-200 ${
         saved 
           ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
           : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
       } ${
         saving 
-          ? 'opacity-50 cursor-not-allowed animate-pulse' 
+          ? 'opacity-50 cursor-not-allowed' 
           : 'hover:scale-110 active:scale-95'
       }`}
       disabled={saving}
       title={saved ? (language === 'en' ? 'Remove from favorites' : '取消收藏') : (language === 'en' ? 'Add to favorites' : '添加收藏')}
     >
-      <Heart className={`w-5 h-5 transition-all ${saved ? 'fill-current text-blue-600' : 'text-gray-500'}`} />
+      <Heart className={`w-4 h-4 transition-all ${saved ? 'fill-current text-blue-600' : 'text-gray-500'}`} />
     </button>
   );
 }

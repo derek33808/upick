@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { useApp } from './AppContext';
 import { UserService } from '../services/UserService';
 import { DemoUserData, DemoProductFavorites, DemoStoreFavorites } from '../lib/demo-favorites';
 import { supabase } from '../lib/supabase';
@@ -64,6 +65,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated } = useAuth();
+  const { connectionStatus, productsFromDb } = useApp();
   const [isDemoMode, setIsDemoMode] = useState(false);
   
   // 状态管理
@@ -206,19 +208,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setStoreFavorites([]);
   };
 
-  // 检测演示模式
+  // 检测演示模式：当用户是 demo 账号、应用数据来源为 fallback(mock) 或商品数据不来自数据库时，强制进入演示模式
   useEffect(() => {
-    if (user?.id && typeof user.id === 'string' && user.id.startsWith('demo-')) {
-      if (!isDemoMode) {
-        setIsDemoMode(true);
-        console.log('🎭 [USER] Demo mode detected for user:', user.id);
-      }
-    } else {
-      if (isDemoMode) {
-        setIsDemoMode(false);
-      }
+    const isDemoUser = !!(user?.id && typeof user.id === 'string' && user.id.startsWith('demo-'));
+    const shouldUseDemo = isDemoUser || connectionStatus !== 'connected' || !productsFromDb;
+
+    if (shouldUseDemo !== isDemoMode) {
+      setIsDemoMode(shouldUseDemo);
+      const reason = isDemoUser ? 'demo-user' : !productsFromDb ? 'mock-products' : connectionStatus;
+      console.log('🎭 [USER] Demo mode changed:', shouldUseDemo, 'reason:', reason);
     }
-  }, [user?.id, isDemoMode]);
+  }, [user?.id, connectionStatus, productsFromDb, isDemoMode]);
 
   // 收藏管理
   const addToFavorites = async (productId: number): Promise<boolean> => {
@@ -226,7 +226,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     try {
       let result;
-      if (isDemoMode) {
+      if (isDemoMode || connectionStatus !== 'connected' || !productsFromDb) {
         console.log('🎭 [USER] Using demo favorites for add');
         result = await DemoUserData.addToFavorites(user.id.toString(), productId);
       } else {
@@ -236,6 +236,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (result.success) {
         await refreshFavorites();
         return true;
+      }
+      // 如果真实后端返回失败（例如外键约束），兜底到演示模式
+      if (!isDemoMode) {
+        console.log('🎭 [USER] Backend failed, falling back to demo for add favorites');
+        setIsDemoMode(true);
+        try {
+          const demoResult = await DemoUserData.addToFavorites(user.id.toString(), productId);
+          if (demoResult.success) {
+            await refreshFavorites();
+            return true;
+          }
+        } catch (demoError) {
+          console.error('❌ [USER] Demo fallback also failed:', demoError);
+        }
       }
       return false;
     } catch (error) {
@@ -356,7 +370,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     try {
       let result;
-      if (isDemoMode) {
+      if (isDemoMode || connectionStatus !== 'connected' || !productsFromDb) {
         console.log('🎭 [USER] Using demo cart for add');
         result = await DemoUserData.addToCart(user.id.toString(), productId, quantity, notes);
       } else {
@@ -366,6 +380,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (result.success) {
         await refreshCart();
         return true;
+      }
+      // 如果真实后端返回失败（例如外键约束），兜底到演示模式
+      if (!isDemoMode) {
+        console.log('🎭 [USER] Backend failed, falling back to demo for add to cart');
+        setIsDemoMode(true);
+        try {
+          const demoResult = await DemoUserData.addToCart(user.id.toString(), productId, quantity, notes);
+          if (demoResult.success) {
+            await refreshCart();
+            return true;
+          }
+        } catch (demoError) {
+          console.error('❌ [USER] Demo fallback also failed:', demoError);
+        }
       }
       return false;
     } catch (error) {
