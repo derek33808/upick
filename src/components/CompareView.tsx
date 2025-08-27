@@ -72,9 +72,15 @@ export function CompareView() {
     }
   };
 
+  // Helper function to clean product names by removing store suffixes
+  const cleanProductName = (name: string) => {
+    return name.replace(/\s*\(Store\s+\d+\)\s*$/i, '').trim();
+  };
+
   // Group products by name for comparison
   const productGroups = products.reduce((groups, product) => {
-    const key = product.name_en.toLowerCase().trim();
+    const cleanedName = cleanProductName(product.name_en);
+    const key = cleanedName.toLowerCase().trim();
     if (!groups[key]) {
       groups[key] = [];
     }

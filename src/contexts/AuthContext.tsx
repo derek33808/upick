@@ -256,34 +256,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else {
             console.log('✅ User profile created successfully');
           }
+          
+          // 注册成功后加载用户资料（自动登录）
+          console.log('👤 Loading user profile after registration...');
+          await loadUserProfileSafely(authData.user.id);
         } catch (error) {
           console.warn('⚠️ Profile creation error:', error);
           // 不让profile创建失败阻止注册成功
         }
-      }
-      
-      // 2. 显式创建用户资料
-      try {
-        const { error: profileError } = await supabase
-          .from('users')
-          .insert([{
-            id: authData.user.id,
-            email: authData.user.email!,
-            name: data.full_name,
-            phone: data.phone,
-            region: data.city || 'Christchurch',
-            language: data.preferred_language || 'en'
-          }]);
-
-        if (profileError) {
-          console.warn('⚠️ Profile creation failed:', profileError.message);
-          // 不让profile创建失败阻止注册成功
-        } else {
-          console.log('✅ User profile created successfully');
-        }
-      } catch (error) {
-        console.warn('⚠️ Profile creation error:', error);
-        // 不让profile创建失败阻止注册成功
       }
 
       console.log('✅ Registration successful');
@@ -325,7 +305,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearError();
     
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('users')
         .update({
           name: updates.name,
@@ -334,9 +314,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           avatar_url: updates.avatar,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user.id)
-        .select()
-        .single();
+        .eq('id', user.id);
 
       if (error) {
         setError(error.message);

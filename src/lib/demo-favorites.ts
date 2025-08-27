@@ -91,18 +91,18 @@ export class DemoUserData {
     try {
       console.log('🎭 [DEMO] Adding to cart:', { userId, productId, quantity });
       
-      // Check if item already exists
-      const existingIndex = this.cart.findIndex(c => c.user_id === userId && c.product_id === productId);
+      const userCart = this.getUserCartInternal(userId);
+      const existingIndex = userCart.findIndex(c => c.product_id === productId);
       
       if (existingIndex >= 0) {
         // Update existing item
-        this.cart[existingIndex].quantity = quantity;
-        this.cart[existingIndex].notes = notes;
-        this.cart[existingIndex].updated_at = new Date().toISOString();
+        userCart[existingIndex].quantity = quantity;
+        userCart[existingIndex].notes = notes;
+        userCart[existingIndex].updated_at = new Date().toISOString();
       } else {
         // Add new item
         const cartItem: DemoCartItem = {
-          id: this.nextId++,
+          id: Date.now() + Math.random(), // Use timestamp + random for unique ID
           user_id: userId,
           product_id: productId,
           quantity,
@@ -110,10 +110,10 @@ export class DemoUserData {
           added_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
-        this.cart.push(cartItem);
+        userCart.push(cartItem);
       }
 
-      this.saveCart();
+      this.saveUserCart(userId, userCart);
       
       console.log('✅ [DEMO] Added to cart successfully');
       return { success: true };
@@ -127,14 +127,15 @@ export class DemoUserData {
     try {
       console.log('🎭 [DEMO] Removing from cart:', { userId, productId });
       
-      const initialLength = this.cart.length;
-      this.cart = this.cart.filter(c => !(c.user_id === userId && c.product_id === productId));
+      const userCart = this.getUserCartInternal(userId);
+      const initialLength = userCart.length;
+      const updatedCart = userCart.filter(c => c.product_id !== productId);
       
-      if (this.cart.length === initialLength) {
+      if (updatedCart.length === initialLength) {
         return { success: false, error: 'Not found in cart' };
       }
 
-      this.saveCart();
+      this.saveUserCart(userId, updatedCart);
       
       console.log('✅ [DEMO] Removed from cart successfully');
       return { success: true };
@@ -152,16 +153,17 @@ export class DemoUserData {
         return await this.removeFromCart(userId, productId);
       }
 
-      const itemIndex = this.cart.findIndex(c => c.user_id === userId && c.product_id === productId);
+      const userCart = this.getUserCartInternal(userId);
+      const itemIndex = userCart.findIndex(c => c.product_id === productId);
       
       if (itemIndex === -1) {
         return { success: false, error: 'Item not found in cart' };
       }
 
-      this.cart[itemIndex].quantity = quantity;
-      this.cart[itemIndex].updated_at = new Date().toISOString();
+      userCart[itemIndex].quantity = quantity;
+      userCart[itemIndex].updated_at = new Date().toISOString();
       
-      this.saveCart();
+      this.saveUserCart(userId, userCart);
       
       console.log('✅ [DEMO] Updated cart quantity successfully');
       return { success: true };
@@ -174,7 +176,7 @@ export class DemoUserData {
   static async getUserCart(userId: string): Promise<DemoCartItem[]> {
     try {
       console.log('🎭 [DEMO] Getting user cart for:', userId);
-      return this.cart.filter(c => c.user_id === userId);
+      return this.getUserCartInternal(userId);
     } catch (error) {
       console.error('❌ [DEMO] Failed to get cart:', error);
       return [];
@@ -182,7 +184,8 @@ export class DemoUserData {
   }
 
   static checkIsInCart(userId: string, productId: number): { inCart: boolean; quantity: number } {
-    const item = this.cart.find(c => c.user_id === userId && c.product_id === productId);
+    const userCart = this.getUserCartInternal(userId);
+    const item = userCart.find(c => c.product_id === productId);
     return {
       inCart: !!item,
       quantity: item?.quantity || 0
@@ -193,8 +196,7 @@ export class DemoUserData {
     try {
       console.log('🎭 [DEMO] Clearing cart for:', userId);
       
-      this.cart = this.cart.filter(c => c.user_id !== userId);
-      this.saveCart();
+      this.saveUserCart(userId, []);
       
       console.log('✅ [DEMO] Cart cleared successfully');
       return { success: true };
@@ -204,20 +206,36 @@ export class DemoUserData {
     }
   }
 
+  // User-specific cart methods
+  private static getUserCartInternal(userId: string): DemoCartItem[] {
+    try {
+      const key = `demo-cart-${userId}`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (error) {
+      console.warn(`Failed to load cart for user ${userId}:`, error);
+    }
+    return [];
+  }
+
+  private static saveUserCart(userId: string, cartItems: DemoCartItem[]) {
+    try {
+      const key = `demo-cart-${userId}`;
+      localStorage.setItem(key, JSON.stringify(cartItems));
+      console.log(`🎭 [DEMO] Saved cart for user ${userId}, items:`, cartItems.length);
+    } catch (error) {
+      console.warn(`Failed to save cart for user ${userId}:`, error);
+    }
+  }
+
   // Persistence helpers
   private static saveFavorites() {
     try {
       localStorage.setItem('demo-favorites', JSON.stringify(this.favorites));
     } catch (error) {
       console.warn('Failed to save favorites to localStorage:', error);
-    }
-  }
-
-  private static saveCart() {
-    try {
-      localStorage.setItem('demo-cart', JSON.stringify(this.cart));
-    } catch (error) {
-      console.warn('Failed to save cart to localStorage:', error);
     }
   }
 
@@ -234,28 +252,14 @@ export class DemoUserData {
     }
   }
 
-  private static loadCart() {
-    try {
-      const saved = localStorage.getItem('demo-cart');
-      if (saved) {
-        this.cart = JSON.parse(saved);
-        console.log('🎭 [DEMO] Loaded cart from localStorage:', this.cart.length);
-      }
-    } catch (error) {
-      console.warn('Failed to load cart from localStorage:', error);
-      this.cart = [];
-    }
-  }
-
   // Initialize demo data
   static initialize() {
     this.loadFavorites();
-    this.loadCart();
+    // Note: Cart data is now loaded per-user, not globally
     
-    // Set next ID based on existing data
+    // Set next ID based on existing favorites data
     const maxFavId = this.favorites.length > 0 ? Math.max(...this.favorites.map(f => f.id)) : 0;
-    const maxCartId = this.cart.length > 0 ? Math.max(...this.cart.map(c => c.id)) : 0;
-    this.nextId = Math.max(maxFavId, maxCartId) + 1;
+    this.nextId = Math.max(maxFavId, 1000) + 1; // Start cart IDs from 1000+ to avoid conflicts
     
     console.log('🎭 [DEMO] Demo user data initialized');
   }
@@ -266,7 +270,16 @@ export class DemoUserData {
     this.cart = [];
     this.nextId = 1;
     localStorage.removeItem('demo-favorites');
-    localStorage.removeItem('demo-cart');
+    localStorage.removeItem('demo-cart'); // Legacy cart cleanup
+    
+    // Clear all user-specific carts
+    const keys = Object.keys(localStorage);
+    for (const key of keys) {
+      if (key.startsWith('demo-cart-')) {
+        localStorage.removeItem(key);
+      }
+    }
+    
     console.log('🎭 [DEMO] All demo data cleared');
   }
 }
@@ -592,24 +605,64 @@ export const DemoStoreFavorites = {
         logo_url: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=200&h=200&fit=crop&crop=center",
         lat: -43.545,
         lng: 172.595
+      },
+      {
+        id: 67,
+        name_en: "Countdown Westfield",
+        name_zh: "Countdown Westfield",
+        location: "Riccarton",
+        logo_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRkZGRkZGIiByeD0iMTAiLz4KPCEtLSBDb3VudGRvd24gR3JlZW4gQXBwbGUgTG9nbyAtLT4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDAsIDQwKSI+CjxwYXRoIGQ9Ik02MCA2MEMzMCA2MCA2IDM0IDM2IDRDNjYgMzQgOTAgNjAgNjBaIiBmaWxsPSIjNzNCNTFFIi8+CjxwYXRoIGQ9Ik02MCA2MEMzMCA2MCA2IDM0IDM2IDRDNjYgMzQgOTAgNjAgNjBaIiBmaWxsPSIjNzNCNTFFIiBvcGFjaXR5PSIwLjQiLz4KPHBhdGggZD0iTTYwIDYwQzY2IDI4IDEwNCA2IDExNiAzNkMxMDQgNjYgNjAgNjBaIiBmaWxsPSIjOEVDNDREIi8+CjxwYXRoIGQ9Ik02MCA2MEMxMDggNjAgMTE2IDM2IDExNiAzNkMxMDQgNiA2NiAyOCA2MCA2MFoiIGZpbGw9IiM2OEE1M0UiLz4KPC9nPgo8dGV4dCB4PSIxMDAiIHk9IjE0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0VGMzIzQyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iYm9sZCIgZm9udC1zaXplPSIyMiI+Y291bnRkb3duPC90ZXh0Pgo8dGV4dCB4PSIxMDAiIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY4QTUzRSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0Ij5zaG9wIHNtYXJ0ZXI8L3RleHQ+Cjwvc3ZnPg==",
+        lat: -43.53,
+        lng: 172.61
+      },
+      {
+        id: 69,
+        name_en: "Countdown Northlands",
+        name_zh: "Countdown Northlands",
+        location: "Papanui",
+        logo_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRkZGRkZGIiByeD0iMTAiLz4KPCEtLSBDb3VudGRvd24gR3JlZW4gQXBwbGUgTG9nbyAtLT4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDAsIDQwKSI+CjxwYXRoIGQ9Ik02MCA2MEMzMCA2MCA2IDM0IDM2IDRDNjYgMzQgOTAgNjAgNjBaIiBmaWxsPSIjNzNCNTFFIi8+CjxwYXRoIGQ9Ik02MCA2MEMzMCA2MCA2IDM0IDM2IDRDNjYgMzQgOTAgNjAgNjBaIiBmaWxsPSIjNzNCNTFFIiBvcGFjaXR5PSIwLjQiLz4KPHBhdGggZD0iTTYwIDYwQzY2IDI4IDEwNCA2IDExNiAzNkMxMDQgNjYgNjAgNjBaIiBmaWxsPSIjOEVDNDREIi8+CjxwYXRoIGQ9Ik02MCA2MEMxMDggNjAgMTE2IDM2IDExNiAzNkMxMDQgNiA2NiAyOCA2MCA2MFoiIGZpbGw9IiM2OEE1M0UiLz4KPC9nPgo8dGV4dCB4PSIxMDAiIHk9IjE0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0VGMzIzQyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iYm9sZCIgZm9udC1zaXplPSIyMiI+Y291bnRkb3duPC90ZXh0Pgo8dGV4dCB4PSIxMDAiIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY4QTUzRSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0Ij5zaG9wIHNtYXJ0ZXI8L3RleHQ+Cjwvc3ZnPg==",
+        lat: -43.485,
+        lng: 172.605
+      },
+      {
+        id: 70,
+        name_en: "Countdown Eastgate",
+        name_zh: "Countdown Eastgate",
+        location: "Linwood",
+        logo_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRkZGRkZGIiByeD0iMTAiLz4KPCEtLSBDb3VudGRvd24gR3JlZW4gQXBwbGUgTG9nbyAtLT4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDAsIDQwKSI+CjxwYXRoIGQ9Ik02MCA2MEMzMCA2MCA2IDM0IDM2IDRDNjYgMzQgOTAgNjAgNjBaIiBmaWxsPSIjNzNCNTFFIi8+CjxwYXRoIGQ9Ik02MCA2MEMzMCA2MCA2IDM0IDM2IDRDNjYgMzQgOTAgNjAgNjBaIiBmaWxsPSIjNzNCNTFFIiBvcGFjaXR5PSIwLjQiLz4KPHBhdGggZD0iTTYwIDYwQzY2IDI4IDEwNCA2IDExNiAzNkMxMDQgNjYgNjAgNjBaIiBmaWxsPSIjOEVDNDREIi8+CjxwYXRoIGQ9Ik02MCA2MEMxMDggNjAgMTE2IDM2IDExNiAzNkMxMDQgNiA2NiAyOCA2MCA2MFoiIGZpbGw9IiM2OEE1M0UiLz4KPC9nPgo8dGV4dCB4PSIxMDAiIHk9IjE0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0VGMzIzQyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iYm9sZCIgZm9udC1zaXplPSIyMiI+Y291bnRkb3duPC90ZXh0Pgo8dGV4dCB4PSIxMDAiIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY4QTUzRSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0Ij5zaG9wIHNtYXJ0ZXI8L3RleHQ+Cjwvc3ZnPg==",
+        lat: -43.550,
+        lng: 172.680
       }
     ];
     
     // 为没有完整店铺信息的收藏补充数据
     return favorites.map((favorite: any) => {
       if (!favorite.supermarket || !favorite.supermarket.logo_url) {
-        const supermarket = mockSupermarkets.find(s => s.id === favorite.supermarket_id);
-        if (supermarket) {
-          favorite.supermarket = {
-            id: supermarket.id,
-            name_en: supermarket.name_en,
-            name_zh: supermarket.name_zh,
-            location: supermarket.location,
-            logo_url: supermarket.logo_url,
-            latitude: supermarket.lat,
-            longitude: supermarket.lng
+        let supermarket = mockSupermarkets.find(s => s.id === favorite.supermarket_id);
+        
+        // 如果找不到对应的超市，创建一个默认的
+        if (!supermarket) {
+          console.warn(`⚠️ [DemoStoreFavorites] 未找到超市ID ${favorite.supermarket_id} 的数据，创建默认数据`);
+          supermarket = {
+            id: favorite.supermarket_id,
+            name_en: `Supermarket ${favorite.supermarket_id}`,
+            name_zh: `超市${favorite.supermarket_id}`,
+            location: "Unknown Location",
+            logo_url: "", // 空字符串，将触发StoreLogo组件的占位符
+            lat: -43.53,
+            lng: 172.62
           };
         }
+        
+        favorite.supermarket = {
+          id: supermarket.id,
+          name_en: supermarket.name_en,
+          name_zh: supermarket.name_zh,
+          location: supermarket.location,
+          logo_url: supermarket.logo_url,
+          latitude: supermarket.lat,
+          longitude: supermarket.lng
+        };
       }
       return favorite;
     });

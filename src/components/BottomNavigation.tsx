@@ -1,4 +1,4 @@
-import { Home, Zap, BarChart3, Heart, MapPin } from 'lucide-react';
+import { Home, Zap, BarChart3, Heart, MapPin, Package } from 'lucide-react';
 import { ShoppingCart, User } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 
@@ -15,6 +15,11 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
       id: 'home',
       icon: Home,
       label: { en: 'Home', zh: '首页' }
+    },
+    {
+      id: 'products',
+      icon: Package,
+      label: { en: 'Products', zh: '商品' }
     },
     {
       id: 'favorites',

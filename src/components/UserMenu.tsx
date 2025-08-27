@@ -120,7 +120,7 @@ export function UserMenu() {
               className={`w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors ${language === 'zh' ? 'font-chinese' : ''}`}
             >
               <Heart className="w-4 h-4 text-gray-600" />
-              <span className="text-xs sm:text-sm text-gray-700">{text[language].favorites} & {language === 'en' ? 'Shopping List' : '购物清单'}</span>
+              <span className="text-xs sm:text-sm text-gray-700">{text[language].favorites}</span>
             </button>
 
             {isAdmin && (

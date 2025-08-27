@@ -65,7 +65,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated } = useAuth();
-  const { connectionStatus, productsFromDb } = useApp();
+  const { connectionStatus, products, supermarkets } = useApp();
   const [isDemoMode, setIsDemoMode] = useState(false);
   
   // 状态管理
@@ -133,12 +133,23 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   // 当用户登录状态改变时，加载用户数据
   useEffect(() => {
     if (isAuthenticated && user) {
-      loadUserData();
+      // 只在用户首次登录时加载数据，避免重复加载导致购物车丢失
+      const currentUserId = user.id?.toString();
+      const lastLoadedUserId = sessionStorage.getItem('last-loaded-user-id');
+      
+      if (currentUserId !== lastLoadedUserId) {
+        console.log('👤 [USER] New user detected, loading data for:', user.email);
+        loadUserData();
+        sessionStorage.setItem('last-loaded-user-id', currentUserId);
+      } else {
+        console.log('👤 [USER] Same user, skipping data reload to preserve cart');
+      }
     } else {
       clearUserData();
+      sessionStorage.removeItem('last-loaded-user-id');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user?.id]); // 只依赖用户ID而不是整个user对象
 
   const loadUserData = async () => {
     if (!user) return;
@@ -208,17 +219,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setStoreFavorites([]);
   };
 
-  // 检测演示模式：当用户是 demo 账号、应用数据来源为 fallback(mock) 或商品数据不来自数据库时，强制进入演示模式
+  // 检测演示模式：只有当用户是 demo 账号或数据库连接完全失败时才使用演示模式
   useEffect(() => {
     const isDemoUser = !!(user?.id && typeof user.id === 'string' && user.id.startsWith('demo-'));
-    const shouldUseDemo = isDemoUser || connectionStatus !== 'connected' || !productsFromDb;
+    // 更严格的demo模式判断：只有demo用户或连接状态为fallback时才使用demo模式
+    const shouldUseDemo = isDemoUser || connectionStatus === 'fallback';
 
     if (shouldUseDemo !== isDemoMode) {
+      const previousMode = isDemoMode;
       setIsDemoMode(shouldUseDemo);
-      const reason = isDemoUser ? 'demo-user' : !productsFromDb ? 'mock-products' : connectionStatus;
+      const reason = isDemoUser ? 'demo-user' : connectionStatus === 'fallback' ? 'db-connection-failed' : 'connected';
       console.log('🎭 [USER] Demo mode changed:', shouldUseDemo, 'reason:', reason);
+      
+      // 当demo模式改变时，避免重新加载数据以保持购物车状态
+      // 除非是从非认证状态到认证状态的第一次加载
+      if (user && previousMode !== shouldUseDemo) {
+        console.log('🛒 [USER] Demo mode switched, preserving current cart state');
+      }
     }
-  }, [user?.id, connectionStatus, productsFromDb, isDemoMode]);
+  }, [user?.id, connectionStatus, isDemoMode]);
 
   // 收藏管理
   const addToFavorites = async (productId: number): Promise<boolean> => {
@@ -226,10 +245,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     try {
       let result;
-      if (isDemoMode || connectionStatus !== 'connected' || !productsFromDb) {
-        console.log('🎭 [USER] Using demo favorites for add');
+      if (isDemoMode) {
+        console.log('🎭 [USER] Using demo favorites for add (demo mode)');
         result = await DemoUserData.addToFavorites(user.id.toString(), productId);
       } else {
+        console.log('📊 [USER] Using database service for add to favorites');
         result = await UserService.addToFavorites(user.id.toString(), productId);
       }
       
@@ -370,10 +390,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     try {
       let result;
-      if (isDemoMode || connectionStatus !== 'connected' || !productsFromDb) {
-        console.log('🎭 [USER] Using demo cart for add');
+      if (isDemoMode) {
+        console.log('🎭 [USER] Using demo cart for add (demo mode)');
         result = await DemoUserData.addToCart(user.id.toString(), productId, quantity, notes);
       } else {
+        console.log('📊 [USER] Using database service for add to cart');
         result = await UserService.addToCart(user.id.toString(), productId, quantity, notes);
       }
       
@@ -522,23 +543,64 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (isDemoMode) {
         console.log('🎭 [USER] Refreshing demo cart');
         const demoCart = await DemoUserData.getUserCart(user.id.toString());
-        // Convert demo cart to CartItem format
-        const convertedCart: CartItem[] = demoCart.map(c => ({
-          id: c.id,
-          user_id: c.user_id,
-          product_id: c.product_id,
-          quantity: c.quantity,
-          notes: c.notes || undefined,
-          added_at: c.added_at,
-          updated_at: c.updated_at,
-          product: undefined
-        }));
+        // Convert demo cart to CartItem format with product information
+        const convertedCart: CartItem[] = demoCart.map(c => {
+          // Find the product from the products array
+          const product = products.find(p => p.id === c.product_id);
+          const supermarket = product ? supermarkets.find(s => s.id === product.supermarket_id) : undefined;
+          
+          return {
+            id: c.id,
+            user_id: c.user_id,
+            product_id: c.product_id,
+            quantity: c.quantity,
+            notes: c.notes || undefined,
+            added_at: c.added_at,
+            updated_at: c.updated_at,
+            product: product ? {
+              id: product.id,
+              name_en: product.name_en,
+              name_zh: product.name_zh,
+              image_url: product.image,
+              image: product.image, // Add this for compatibility
+              price: product.price,
+              original_price: product.originalPrice,
+              unit: product.unit,
+              category: product.category,
+              supermarket_id: product.supermarket_id,
+              is_special: product.isSpecial || false,
+              discount_percentage: product.discount,
+              supermarket: supermarket ? {
+                id: supermarket.id,
+                name_en: supermarket.name_en,
+                name_zh: supermarket.name_zh,
+                location: supermarket.location,
+                logo_url: supermarket.logo_url,
+                latitude: supermarket.lat,
+                longitude: supermarket.lng
+              } : undefined
+            } : undefined
+          };
+        });
+        
         setCart(convertedCart);
-        // 简单计算演示模式的购物车统计
+        
+        // Calculate proper cart statistics
+        const totalCost = convertedCart.reduce((sum, item) => {
+          const productPrice = item.product ? item.product.price : 5; // fallback price
+          return sum + (item.quantity * productPrice);
+        }, 0);
+        
+        const uniqueStores = new Set(
+          convertedCart
+            .filter(item => item.product)
+            .map(item => item.product!.supermarket_id)
+        ).size || 1;
+        
         setCartStats({
           total_items: convertedCart.length,
-          total_cost: convertedCart.reduce((sum, item) => sum + (item.quantity * 5), 0), // Mock price
-          unique_stores: 1,
+          total_cost: totalCost,
+          unique_stores: uniqueStores,
           items_count: convertedCart.reduce((sum, item) => sum + item.quantity, 0)
         });
       } else {
@@ -619,15 +681,133 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     setIsLoading(true);
     try {
-      const route = await UserService.calculateOptimalRoute(user.id.toString());
+      let route: ShoppingRoute | null = null;
+      
+      if (isDemoMode) {
+        // Demo模式下使用本地购物车数据计算路线
+        console.log('🎭 [USER] Calculating route in demo mode');
+        route = await calculateDemoRoute();
+      } else {
+        // 非Demo模式使用数据库服务
+        console.log('📊 [USER] Calculating route using database service');
+        route = await UserService.calculateOptimalRoute(user.id.toString());
+      }
+      
       setShoppingRoute(route);
       return route;
     } catch (error) {
       console.error('计算最佳路线失败:', error);
+      
+      // 如果非demo模式失败，尝试使用demo计算作为fallback
+      if (!isDemoMode) {
+        console.log('🎭 [USER] Database route calculation failed, trying demo fallback');
+        try {
+          const demoRoute = await calculateDemoRoute();
+          setShoppingRoute(demoRoute);
+          return demoRoute;
+        } catch (demoError) {
+          console.error('Demo route calculation also failed:', demoError);
+        }
+      }
+      
       return null;
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Demo模式路线计算
+  const calculateDemoRoute = async (): Promise<ShoppingRoute | null> => {
+    console.log('🎭 [DEMO] Starting demo route calculation, cart items:', cart.length);
+    
+    if (cart.length === 0) {
+      console.log('🎭 [DEMO] Cart is empty, returning null');
+      return null;
+    }
+
+    // 按超市分组商品
+    const storeGroups = new Map<number, CartItem[]>();
+    
+    cart.forEach(item => {
+      const storeId = item.product?.supermarket_id;
+      console.log('🎭 [DEMO] Processing cart item:', {
+        product_id: item.product_id,
+        product_name: item.product?.name_en,
+        supermarket_id: storeId,
+        has_supermarket_info: !!item.product?.supermarket
+      });
+      
+      if (storeId && item.product) {
+        if (!storeGroups.has(storeId)) {
+          storeGroups.set(storeId, []);
+        }
+        storeGroups.get(storeId)!.push(item);
+      } else {
+        console.warn('🎭 [DEMO] Item missing store ID or product info:', item);
+      }
+    });
+
+    console.log('🎭 [DEMO] Store groups created:', storeGroups.size, 'stores');
+
+    // 为每个超市计算购物信息
+    const stores = Array.from(storeGroups.entries()).map(([storeId, items]) => {
+      const firstItem = items[0];
+      if (!firstItem.product?.supermarket) return null;
+
+      const supermarket = firstItem.product.supermarket;
+      const products = items.map(item => ({
+        id: item.product_id,
+        name: item.product?.name_en || '',
+        quantity: item.quantity,
+        price: item.product?.price || 0,
+        total_cost: (item.product?.price || 0) * item.quantity
+      }));
+
+      const store_total = products.reduce((sum, p) => sum + p.total_cost, 0);
+
+      return {
+        id: storeId,
+        name: supermarket.name_en,
+        location: supermarket.location,
+        latitude: supermarket.latitude,
+        longitude: supermarket.longitude,
+        products,
+        store_total,
+        estimated_time_minutes: Math.max(15, products.length * 3) // 基础15分钟 + 每个商品3分钟
+      };
+    }).filter(Boolean) as any[];
+
+    // 按距离和商品数量优化顺序（简化版）
+    stores.sort((a, b) => {
+      // 优先考虑商品数量多的店铺
+      const scoreA = a.products.length * 10 - a.estimated_time_minutes;
+      const scoreB = b.products.length * 10 - b.estimated_time_minutes;
+      return scoreB - scoreA;
+    });
+
+    const total_cost = stores.reduce((sum, store) => sum + store.store_total, 0);
+    const total_time_minutes = stores.reduce((sum, store) => sum + store.estimated_time_minutes, 0);
+    const total_distance_km = stores.length > 1 ? stores.length * 2.5 : 0; // 简化距离计算
+    const efficiency_score = Math.min(100, Math.max(60, 100 - (stores.length - 1) * 10)); // 店铺越少效率越高
+
+    const route = {
+      stores,
+      total_cost,
+      total_time_minutes,
+      total_distance_km,
+      efficiency_score
+    };
+
+    console.log('🎭 [DEMO] Route calculation completed:', {
+      stores_count: stores.length,
+      total_cost,
+      total_time_minutes,
+      total_distance_km,
+      efficiency_score,
+      route
+    });
+
+    return route;
   };
 
   const getRouteOptimization = async (): Promise<RouteOptimization | null> => {

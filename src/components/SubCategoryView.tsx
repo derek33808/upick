@@ -21,6 +21,7 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
   const text = {
     en: {
       back: 'Back to Categories',
+      special: 'Special Offers',
       vegetable: 'Vegetables',
       fruit: 'Fruits',
       meat: 'Meat',
@@ -31,6 +32,7 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
       viewAllPrices: 'View All Store Prices',
       stores: 'stores',
       noProducts: 'No products found in this category',
+      noSpecialProducts: 'No special offers available',
       priceUpdated: 'Price updated',
       historicalLow: '30-day low',
       currentHigher: 'Current price higher than 30-day low',
@@ -42,6 +44,7 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
     },
     zh: {
       back: '返回分类',
+      special: '特价商品',
       vegetable: '蔬菜',
       fruit: '水果',
       meat: '肉类',
@@ -52,6 +55,7 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
       viewAllPrices: '查看各超市价格',
       stores: '家超市',
       noProducts: '该分类下暂无商品',
+      noSpecialProducts: '暂无特价商品',
       priceUpdated: '价格更新于',
       historicalLow: '30天最低价',
       currentHigher: '当前价格高于30天最低价',
@@ -63,35 +67,46 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
     }
   };
 
+  // Helper function to clean product names by removing store suffixes
+  const cleanProductName = (name: string) => {
+    // Remove patterns like "(Store 2)", "(Store 10)", etc.
+    return name.replace(/\s*\(Store\s+\d+\)\s*$/i, '').trim();
+  };
+
   // Group products by name and find minimum price for each
   const getUniqueProducts = () => {
     const productMap = new Map();
     
-    products
-      .filter(product => product.category === category)
-      .forEach(product => {
-        const key = product.name_en.toLowerCase();
-        if (!productMap.has(key)) {
-          productMap.set(key, {
-            name_en: product.name_en,
-            name_zh: product.name_zh,
-            image: product.image,
-            minPrice: product.price,
-            products: [product],
-            lowestPriceStores: [product]
-          });
-        } else {
-          const existing = productMap.get(key);
-          existing.products.push(product);
-          
-          if (product.price < existing.minPrice) {
-            existing.minPrice = product.price;
-            existing.lowestPriceStores = [product];
-          } else if (product.price === existing.minPrice) {
-            existing.lowestPriceStores.push(product);
-          }
+    const filteredProducts = category === 'special' 
+      ? products.filter(product => product.isSpecial)
+      : products.filter(product => product.category === category);
+    
+    filteredProducts.forEach(product => {
+      // Use cleaned product name as the key to group same products together
+      const cleanedName = cleanProductName(product.name_en);
+      const key = cleanedName.toLowerCase();
+      
+      if (!productMap.has(key)) {
+        productMap.set(key, {
+          name_en: cleanedName, // Use cleaned name for display
+          name_zh: product.name_zh,
+          image: product.image,
+          minPrice: product.price,
+          products: [product],
+          lowestPriceStores: [product]
+        });
+      } else {
+        const existing = productMap.get(key);
+        existing.products.push(product);
+        
+        if (product.price < existing.minPrice) {
+          existing.minPrice = product.price;
+          existing.lowestPriceStores = [product];
+        } else if (product.price === existing.minPrice) {
+          existing.lowestPriceStores.push(product);
         }
-      });
+      }
+    });
     
     return Array.from(productMap.values()).sort((a, b) => a.minPrice - b.minPrice);
   };
@@ -100,7 +115,8 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
   const getHistoricalLow = (productName: string) => {
     // In a real app, this would query the price_history table
     // For demo, we'll simulate historical data
-    const currentProducts = products.filter(p => p.name_en.toLowerCase() === productName.toLowerCase());
+    const cleanedProductName = cleanProductName(productName);
+    const currentProducts = products.filter(p => cleanProductName(p.name_en).toLowerCase() === cleanedProductName.toLowerCase());
     const currentMinPrice = Math.min(...currentProducts.map(p => p.price));
     
     // Simulate historical low (usually 10-20% lower than current)
@@ -132,15 +148,19 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
       window.dispatchEvent(new CustomEvent('showLoginModal'));
       return;
     }
-    if (updating.has(productNameEn)) return;
-    setUpdating(prev => new Set(prev.add(productNameEn)));
+    
+    // Use cleaned product name for favorites
+    const cleanedName = cleanProductName(productNameEn);
+    
+    if (updating.has(cleanedName)) return;
+    setUpdating(prev => new Set(prev.add(cleanedName)));
     try {
-      const isFav = checkIsProductFavorite(productNameEn);
+      const isFav = checkIsProductFavorite(cleanedName);
       if (isFav) {
-        await removeFromProductFavorites(productNameEn);
+        await removeFromProductFavorites(cleanedName);
       } else {
         await addToProductFavorites({
-          name_en: productNameEn,
+          name_en: cleanedName,
           name_zh: productNameZh,
           image,
           category
@@ -151,7 +171,7 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
     } finally {
       setUpdating(prev => {
         const next = new Set(prev);
-        next.delete(productNameEn);
+        next.delete(cleanedName);
         return next;
       });
     }
@@ -186,7 +206,7 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
         <div className="text-center py-12">
           <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <p className={`text-gray-600 ${language === 'zh' ? 'font-chinese' : ''}`}>
-            {text[language].noProducts}
+            {category === 'special' ? text[language].noSpecialProducts : text[language].noProducts}
           </p>
         </div>
       ) : (

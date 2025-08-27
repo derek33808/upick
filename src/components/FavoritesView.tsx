@@ -6,7 +6,8 @@ import { useApp } from '../contexts/AppContext';
 import { PriceHistoryChart } from './PriceHistoryChart';
 import { generateSeededSeries } from '../lib/chartUtils';
 import { StoreDetailModal } from './StoreDetailModal';
-import { generateProductPlaceholder, generateStorePlaceholder } from '../lib/imageUtils';
+import { generateProductPlaceholder } from '../lib/imageUtils';
+import { StoreLogo } from './StoreLogo';
 
 export function FavoritesView() {
   const { user, isAuthenticated } = useAuth();
@@ -23,7 +24,7 @@ export function FavoritesView() {
     refreshProductFavorites,
     refreshStoreFavorites
   } = useUser();
-  const { language, products } = useApp();
+  const { language, products, supermarkets } = useApp();
   const [activeTab, setActiveTab] = useState<'single' | 'storeProducts' | 'stores'>('single');
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
   const [selectedStore, setSelectedStore] = useState<any>(null);
@@ -39,6 +40,7 @@ export function FavoritesView() {
       noStoreFavorites: "You haven't saved any store favorites yet",
       noStoreProductFavorites: "You haven't saved any store product favorites yet",
       addToCart: 'Add to Cart',
+      alreadyInCart: 'Already in cart',
       removeFromFavorites: 'Remove',
       viewDetails: 'View Details',
       priceHistory: 'Price History',
@@ -60,6 +62,7 @@ export function FavoritesView() {
       noStoreFavorites: '您还没有收藏任何店铺',
       noStoreProductFavorites: '您还没有收藏任何店铺商品',
       addToCart: '加入购物车',
+      alreadyInCart: '已在购物车中',
       removeFromFavorites: '取消收藏',
       viewDetails: '查看详情',
       priceHistory: '价格历史',
@@ -295,10 +298,10 @@ export function FavoritesView() {
                     <div className="flex items-start space-x-3 md:space-x-4 mb-4">
                       <div className="flex-shrink-0">
                         <img
-                          src={favorite.product_image || '/public/logo.svg'}
+                          src={favorite.product_image || generateProductPlaceholder(favorite.product_name_en, 80)}
                           alt={language === 'en' ? favorite.product_name_en : favorite.product_name_zh}
                           className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-lg bg-gray-100"
-                    onError={(e) => {
+                          onError={(e) => {
                             e.currentTarget.src = generateProductPlaceholder(favorite.product_name_en, 80);
                           }}
                         />
@@ -377,13 +380,13 @@ export function FavoritesView() {
                               {matchingProducts.map((product) => (
                                 <div key={product.id} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
                                   <div className="flex items-center space-x-2 md:space-x-3 min-w-0 flex-1">
-                                    <img
-                                      src={product.supermarket?.logo_url}
-                                      alt={product.supermarket?.name_en}
-                                      className="w-6 h-6 md:w-8 md:h-8 rounded-full object-cover flex-shrink-0"
-                                      onError={(e) => {
-                                        e.currentTarget.src = generateStorePlaceholder(product.supermarket?.id || 0, 32);
-                                      }}
+                                    <StoreLogo
+                                      supermarket={product.supermarket}
+                                      supermarketId={product.supermarket?.id || 0}
+                                      size={32}
+                                      className="w-6 h-6 md:w-8 md:h-8 rounded-full flex-shrink-0"
+                                      language={language}
+                                      showDebugInfo={false}
                                     />
                                     <div className="min-w-0 flex-1">
                                       <div className={`font-medium text-gray-900 text-xs md:text-sm truncate ${language === 'zh' ? 'font-chinese' : ''}`}>
@@ -403,6 +406,7 @@ export function FavoritesView() {
                                       onClick={() => handleAddToCart(product.id)}
                                       className="p-1.5 md:p-2 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors"
                                       disabled={checkIsInCart(product.id).inCart}
+                                      title={checkIsInCart(product.id).inCart ? text[language].alreadyInCart : text[language].addToCart}
                                     >
                                       {checkIsInCart(product.id).inCart ? (
                                         <ShoppingCart className="w-3 h-3 md:w-4 md:h-4" />
@@ -449,35 +453,44 @@ export function FavoritesView() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {favorites.map((favorite) => {
+                // 通过product_id查找完整的产品信息
+                const product = products.find(p => p.id === favorite.product_id);
+                if (!product) return null; // 如果找不到产品信息，跳过
+                
+                // Helper function to clean product names
+                const cleanProductName = (name: string) => {
+                  return name.replace(/\s*\(Store\s+\d+\)\s*$/i, '').trim();
+                };
+                
                 // 计算该店铺中哪些商品在其他店更便宜
                 const allSameName = products.filter(p => 
-                  p.name_en.toLowerCase() === favorite.product?.name_en?.toLowerCase()
+                  cleanProductName(p.name_en).toLowerCase() === cleanProductName(product.name_en).toLowerCase()
                 );
-                const cheapest = allSameName.reduce((min, p) => p.price < min.price ? p : min, allSameName[0] || (favorite.product as any));
-                const cheaperElsewhere = cheapest && cheapest.supermarket_id !== favorite.product?.supermarket_id;
+                const cheapest = allSameName.reduce((min, p) => p.price < min.price ? p : min, allSameName[0] || product);
+                const cheaperElsewhere = cheapest && cheapest.supermarket_id !== product.supermarket_id;
                 return (
                   <div key={favorite.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
                     <div className="flex items-center space-x-4 mb-3">
                       <img 
-                        src={favorite.product?.image_url} 
-                        alt={language === 'en' ? favorite.product?.name_en : favorite.product?.name_zh}
+                        src={product.image || generateProductPlaceholder(product.name_en || product.id || 'product', 64)} 
+                        alt={language === 'en' ? product.name_en : product.name_zh}
                         className="w-16 h-16 object-cover rounded-lg"
                         onError={(e) => {
-                          e.currentTarget.src = generateProductPlaceholder(favorite.id || 0, 64);
+                          e.currentTarget.src = generateProductPlaceholder(product.name_en || product.id || 'product', 64);
                         }}
                       />
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-gray-900 truncate">
-                          {favorite.product?.name_en}
+                          {product.name_en}
                         </div>
                         <div className="text-sm text-gray-600">
-                          {favorite.product?.supermarket?.name_en}
+                          {product.supermarket?.name_en}
                         </div>
                       </div>
                       <div className="flex items-center space-x-3">
                         <div className="text-right">
-                          <div className="text-lg font-bold">${favorite.product?.price?.toFixed?.(2) || favorite.product?.price}</div>
-                          <div className="text-xs text-gray-500">{favorite.product?.unit}</div>
+                          <div className="text-lg font-bold">${product.price?.toFixed?.(2) || product.price}</div>
+                          <div className="text-xs text-gray-500">{product.unit}</div>
                         </div>
                         <button
                           onClick={() => handleRemoveFromFavorites(favorite.product_id)}
@@ -516,25 +529,56 @@ export function FavoritesView() {
                 const storeProducts = products.filter(p => p.supermarket_id === favorite.supermarket_id);
                 const storeProductCount = storeProducts.length;
                 
+                // 获取最新的超市信息 - 优先从数据库数据
+                let currentSupermarket = favorite.supermarket;
+                
+                // 如果收藏中的信息不完整或过时，从AppContext的supermarkets中获取最新数据
+                const dbSupermarket = supermarkets.find(s => s.id === favorite.supermarket_id);
+                if (dbSupermarket) {
+                  currentSupermarket = {
+                    id: dbSupermarket.id,
+                    name_en: dbSupermarket.name_en,
+                    name_zh: dbSupermarket.name_zh,
+                    location: dbSupermarket.location,
+                    logo_url: dbSupermarket.logo_url,
+                    latitude: dbSupermarket.lat,
+                    longitude: dbSupermarket.lng
+                  };
+                } else if (!currentSupermarket || !currentSupermarket.name_en) {
+                  // 如果数据库中也没有，尝试从products中查找
+                  const productStore = storeProducts[0]?.supermarket;
+                  if (productStore) {
+                    currentSupermarket = {
+                      id: productStore.id,
+                      name_en: productStore.name_en,
+                      name_zh: productStore.name_zh,
+                      location: productStore.location,
+                      logo_url: productStore.logo_url,
+                      latitude: productStore.lat,
+                      longitude: productStore.lng
+                    };
+                  }
+                }
+                
                 return (
                   <div key={favorite.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
                     <div className="flex items-start space-x-4">
-                      <img
-                        src={favorite.supermarket?.logo_url}
-                        alt={language === 'en' ? favorite.supermarket?.name_en : favorite.supermarket?.name_zh}
-                        className="w-20 h-20 object-cover rounded-lg"
-                        onError={(e) => {
-                          e.currentTarget.src = generateStorePlaceholder(favorite.supermarket?.id || 0, 80);
-                        }}
+                      <StoreLogo
+                        supermarket={currentSupermarket}
+                        supermarketId={favorite.supermarket_id}
+                        size={80}
+                        className="w-20 h-20"
+                        language={language}
+                        showDebugInfo={process.env.NODE_ENV === 'development'}
                       />
                       <div className="flex-1 min-w-0">
                         <h3 className={`text-lg font-semibold text-gray-900 mb-2 ${language === 'zh' ? 'font-chinese' : ''}`}>
-                          {language === 'en' ? favorite.supermarket?.name_en : favorite.supermarket?.name_zh}
+                          {language === 'en' ? currentSupermarket?.name_en : currentSupermarket?.name_zh}
                         </h3>
                         <div className="flex items-center space-x-1 text-sm text-gray-600 mb-2">
                           <MapPin className="w-4 h-4" />
                           <span className={`${language === 'zh' ? 'font-chinese' : ''}`}>
-                            {favorite.supermarket?.location}
+                            {currentSupermarket?.location}
                           </span>
                         </div>
                         <div className="text-sm text-gray-600">
@@ -560,15 +604,20 @@ export function FavoritesView() {
                     <button
                       onClick={() => {
                             console.log(`[FavoritesView] 🏪 查看店铺详情: ${favorite.supermarket_id}`);
-                            // 查找该店铺的所有商品并显示详情
-                            const storeProducts = products.filter(p => p.supermarket_id === favorite.supermarket_id);
-                            const store = storeProducts[0]?.supermarket;
                             
-                            if (store && storeProducts.length > 0) {
-                              setSelectedStore(store);
+                            // 使用与显示相同的currentSupermarket逻辑
+                            if (currentSupermarket && currentSupermarket.name_en) {
+                              // 获取该店铺的商品
+                              const storeProducts = products.filter(p => p.supermarket_id === favorite.supermarket_id);
+                              setSelectedStore(currentSupermarket);
                               setIsStoreModalOpen(true);
+                              console.log(`✅ [FavoritesView] 打开店铺详情: ${currentSupermarket.name_en}, 商品数量: ${storeProducts.length}`);
                             } else {
-                              alert('未找到该店铺的详细信息');
+                              console.warn(`⚠️ [FavoritesView] 未找到超市ID ${favorite.supermarket_id} 的详细信息`);
+                              alert(language === 'en' 
+                                ? 'Store information not found' 
+                                : '未找到该店铺的详细信息'
+                              );
                             }
                           }}
                           className="text-primary-600 hover:text-primary-700 font-medium hover:underline"

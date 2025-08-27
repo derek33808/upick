@@ -110,9 +110,14 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
     }
   };
 
-  // Filter products by name (case insensitive)
+  // Helper function to clean product names by removing store suffixes
+  const cleanProductName = (name: string) => {
+    return name.replace(/\s*\(Store\s+\d+\)\s*$/i, '').trim();
+  };
+
+  // Filter products by name (case insensitive) with name cleaning
   const matchingProducts = products.filter(product => 
-    product.name_en.toLowerCase() === productName.toLowerCase()
+    cleanProductName(product.name_en).toLowerCase() === cleanProductName(productName).toLowerCase()
   ).sort((a, b) => a.price - b.price);
 
   // Stable series for header chart

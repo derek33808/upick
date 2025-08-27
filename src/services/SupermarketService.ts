@@ -23,7 +23,7 @@ export class SupermarketService {
         name_en: item.name_en,
         name_zh: item.name_zh,
         location: item.location,
-        logo_url: this.generateLogoUrl(item.name_en),
+        logo_url: item.logo_url || this.generateLogoUrl(item.name_en), // 优先使用数据库logo_url
         lat: item.latitude,
         lng: item.longitude,
         phone: item.phone,

@@ -206,11 +206,29 @@ export function ProductGrid({ onProductClick }: ProductGridProps) {
       noProducts: 'No products found',
       tryAdjusting: 'Try adjusting your search or filters',
       specialOffers: 'special offers',
+      // Button tooltips
+      addToFavorites: 'Add this product to favorites',
+      removeFromFavorites: 'Remove this product from favorites',
+      addToCart: 'Add to shopping cart',
+      removeFromCart: 'Remove from shopping cart',
+      alreadyInCart: 'Already in shopping cart',
+      addProductToFavorites: 'Follow this product type',
+      removeProductFromFavorites: 'Unfollow this product type',
+      loginRequired: 'Login required for this action'
     },
     zh: {
       noProducts: '未找到商品',
       tryAdjusting: '请尝试调整搜索条件或筛选器',
       specialOffers: '特价商品',
+      // Button tooltips
+      addToFavorites: '将此商品添加到收藏夹',
+      removeFromFavorites: '从收藏夹移除此商品',
+      addToCart: '添加到购物车',
+      removeFromCart: '从购物车移除',
+      alreadyInCart: '已在购物车中',
+      addProductToFavorites: '关注此类商品',
+      removeProductFromFavorites: '取消关注此类商品',
+      loginRequired: '此操作需要登录'
     }
   };
 
@@ -271,6 +289,13 @@ export function ProductGrid({ onProductClick }: ProductGridProps) {
                 <button
                   onClick={(e) => handleToggleFavorite(product.id, e)}
                   disabled={isUpdatingFav}
+                  title={
+                    !isAuthenticated 
+                      ? text[language].loginRequired
+                      : isFavorite 
+                        ? text[language].removeFromFavorites 
+                        : text[language].addToFavorites
+                  }
                   className={`p-2 rounded-full shadow-md transition-colors ${
                     isFavorite ? 'bg-red-500 text-white' : 'bg-white text-gray-400 hover:text-red-500'
                   } ${isUpdatingFav ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -286,6 +311,13 @@ export function ProductGrid({ onProductClick }: ProductGridProps) {
                 <button
                   onClick={(e) => handleToggleCart(product.id, e)}
                   disabled={isUpdatingCart}
+                  title={
+                    !isAuthenticated 
+                      ? text[language].loginRequired
+                      : cartStatus.inCart 
+                        ? text[language].alreadyInCart 
+                        : text[language].addToCart
+                  }
                   className={`p-2 rounded-full shadow-md transition-colors ${
                     cartStatus.inCart ? 'bg-green-500 text-white' : 'bg-white text-gray-400 hover:text-green-500'
                   } ${isUpdatingCart ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -304,6 +336,13 @@ export function ProductGrid({ onProductClick }: ProductGridProps) {
                   type="button"
                   onClick={(e) => handleToggleProductFavorite(product, e)}
                   disabled={updatingProductFavorites.has(product.id)}
+                  title={
+                    !isAuthenticated 
+                      ? text[language].loginRequired
+                      : checkIsProductFavorite(product.name_en) 
+                        ? text[language].removeProductFromFavorites 
+                        : text[language].addProductToFavorites
+                  }
                   className={`p-2 rounded-full shadow-md transition-colors ${
                     checkIsProductFavorite(product.name_en) ? 'bg-blue-500 text-white' : 'bg-white text-gray-400 hover:text-blue-500'
                   } ${updatingProductFavorites.has(product.id) ? 'opacity-50 cursor-not-allowed' : ''}`}

@@ -153,11 +153,31 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       preferred_language: language
     });
     
-    if (result.success) {
-      // 注册成功，提示用户登录
-      setIsLoginMode(true);
-      setLoginData({ email: registerData.email, password: '' });
-      setRegisterData({ full_name: '', email: '', password: '', confirmPassword: '', phone: '', city: '', address: '', postal_code: '' });
+    if (result) {
+      // 注册成功，检查是否已自动登录
+      // 稍等一下让认证状态更新
+      setTimeout(() => {
+        if (isAuthenticated) {
+          // 如果已自动登录，直接关闭模态框
+          handleClose();
+        } else {
+          // 如果没有自动登录，切换到登录模式并预填邮箱
+          setIsLoginMode(true);
+          setLoginData({ email: registerData.email, password: '' });
+          setRegisterData({ full_name: '', email: '', password: '', confirmPassword: '', phone: '', city: '', address: '', postal_code: '' });
+          
+          // 显示成功提示
+          setError(language === 'en' 
+            ? '✅ Registration successful! Please login with your credentials.' 
+            : '✅ 注册成功！请使用您的凭据登录。'
+          );
+          
+          // 3秒后清除成功提示
+          setTimeout(() => {
+            clearError();
+          }, 3000);
+        }
+      }, 500);
     }
   };
 
@@ -440,12 +460,6 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                     {language === 'en' ? 'Demo User:' : '演示用户：'}
                   </div>
                   <div className="text-blue-600">user@upick.life / user123</div>
-                </div>
-                <div className="bg-white p-3 rounded border">
-                  <div className="font-medium text-blue-800">
-                    {language === 'en' ? 'Test User:' : '测试用户：'}
-                  </div>
-                  <div className="text-blue-600">test@upick.life / test123</div>
                 </div>
                 
                 <div className="text-blue-600 mt-3 p-2 bg-blue-100 rounded text-center">

@@ -1,12 +1,12 @@
-import React from 'react';
 import { X, MapPin, Phone, Clock, Star, ShoppingCart, TrendingUp, Users } from 'lucide-react';
 import { generateProductPlaceholder, generateStorePlaceholder } from '../lib/imageUtils';
+import { Product } from '../types';
 
 interface StoreDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   store: any;
-  storeProducts: any[];
+  storeProducts: Product[];
   language: 'en' | 'zh';
 }
 
@@ -28,13 +28,13 @@ export function StoreDetailModal({ isOpen, onClose, store, storeProducts, langua
     }
     acc[category].push(product);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {} as Record<string, Product[]>);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 relative">
+        <div className="bg-gradient-to-r from-sky-300 to-blue-400 text-white p-6 relative">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
@@ -154,14 +154,14 @@ export function StoreDetailModal({ isOpen, onClose, store, storeProducts, langua
                       {products.map((product) => (
                         <div key={product.id} className="flex items-center space-x-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
                           <img 
-                            src={product.image || product.image_url} 
+                            src={product.image} 
                             alt={language === 'zh' ? product.name_zh : product.name_en}
                             className="w-12 h-12 rounded-lg object-cover bg-gradient-to-br from-green-100 to-blue-100"
                             onLoad={() => {
                               console.log(`✅ [StoreDetailModal] Image loaded successfully for product ${product.id}: ${product.name_en}`);
                             }}
                             onError={(e) => {
-                              console.warn(`❌ [StoreDetailModal] Image failed to load for product ${product.id}: ${product.name_en}, src: ${product.image || product.image_url}`);
+                              console.warn(`❌ [StoreDetailModal] Image failed to load for product ${product.id}: ${product.name_en}, src: ${product.image}`);
                               e.currentTarget.src = generateProductPlaceholder(product.id, 48);
                             }}
                           />

@@ -148,6 +148,18 @@ export const mockSupermarkets: Supermarket[] = [
     phone: "+64 3 358 6666",
     hours: "9:00 AM - 8:00 PM",
     rating: 4.4
+  },
+  {
+    id: 70,
+    name_en: "Premium Supermarket",
+    name_zh: "优质超市",
+    location: "Central City",
+    logo_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjNEY0NkU1IiByeD0iMTAiLz4KPCEtLSBQcmVtaXVtIENyb3duIExvZ28gLS0+CjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDUwLCA1MCkiPgo8cGF0aCBkPSJNNTAgMTBMMzAgNDBMNTAgNzBMNzAgNDBMNTAgMTBaIiBmaWxsPSIjRkZEODAwIiBzdHJva2U9IiNGRkY3RUQiIHN0cm9rZS13aWR0aD0iMyIvPgo8Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSIxNSIgZmlsbD0iI0ZGRjdFRCIvPgo8Y2lyY2xlIGN4PSI0MyIgY3k9IjQ1IiByPSIzIiBmaWxsPSIjRkZEODAwIi8+CjxjaXJjbGUgY3g9IjU3IiBjeT0iNDUiIHI9IjMiIGZpbGw9IiNGRkQ4MDAiLz4KPGNpcmNsZSBjeD0iNTAiIGN5PSI1NSIgcj0iMyIgZmlsbD0iI0ZGRDgwMCIvPgo8L2c+Cjx0ZXh0IHg9IjEwMCIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkZGN0VEIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjE4Ij5QUkVNSVVNPC90ZXh0Pgo8dGV4dCB4PSIxMDAiIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZGRjdFRCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0Ij5TVVBFUK1BUktFVDwvdGV4dD4KPC9zdmc+",
+    lat: -43.532,
+    lng: 172.636,
+    phone: "+64 3 366 7000",
+    hours: "8:00 AM - 10:00 PM", 
+    rating: 4.5
   }
 ];
 

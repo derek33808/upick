@@ -12,6 +12,7 @@ import { WatchlistView } from './components/WatchlistView';
 import { ShoppingCartView } from './components/ShoppingCartView';
 import { CompareView } from './components/CompareView';
 import { ProductCompareView } from './components/ProductCompareView';
+import { ProductGrid } from './components/ProductGrid';
 import { MapView } from './components/MapView';
 import { FavoritesView } from './components/FavoritesView';
 import { LoadingSpinner } from './components/LoadingSpinner';
@@ -127,13 +128,30 @@ function AppContent() {
       setShowLoginModal(true);
     };
 
+    const handleNavigateToSearch = (event: any) => {
+      const newState = { 
+        activeTab: 'products',
+        selectedCategory: null,
+        selectedProductName: null 
+      };
+      
+      setActiveTab('products');
+      setSelectedCategory(null);
+      setSelectedProductName(null);
+      setSelectedProduct(null);
+      
+      pushStateToHistory(newState);
+    };
+
     window.addEventListener('navigateToHome', handleNavigateToHome);
     window.addEventListener('navigateToFavorites', handleNavigateToFavorites);
+    window.addEventListener('navigateToSearch', handleNavigateToSearch);
     window.addEventListener('showLoginModal', handleShowLoginModal);
     
     return () => {
       window.removeEventListener('navigateToHome', handleNavigateToHome);
       window.removeEventListener('navigateToFavorites', handleNavigateToFavorites);
+      window.removeEventListener('navigateToSearch', handleNavigateToSearch);
       window.removeEventListener('showLoginModal', handleShowLoginModal);
     };
   }, []);
@@ -254,6 +272,12 @@ function AppContent() {
             <ShoppingCartView />
           </div>
         );
+      case 'products':
+        return (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+            <ProductGrid onProductClick={handleProductClick} />
+          </div>
+        );
       case 'map':
         return (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
@@ -261,11 +285,15 @@ function AppContent() {
           </div>
         );
       case 'database-test':
-        return (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
-            <DatabaseTest />
-          </div>
-        );
+        // 只在开发环境显示数据库测试页面
+        if (process.env.NODE_ENV === 'development') {
+          return (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+              <DatabaseTest />
+            </div>
+          );
+        }
+        return null;
 
       default:
         return null;

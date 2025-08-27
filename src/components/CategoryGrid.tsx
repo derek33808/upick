@@ -1,14 +1,23 @@
-import { Carrot, Apple, Beef, Milk, Egg, Heart, ChevronDown, ChevronUp, MapPin } from 'lucide-react';
+import { Carrot, Apple, Beef, Milk, Egg, Heart, ChevronDown, ChevronUp, MapPin, Info, Tag } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
 import { useState } from 'react';
+import { StoreDetailModal } from './StoreDetailModal';
+import { Supermarket } from '../types';
 
 interface CategoryGridProps {
   onCategoryClick: (category: string) => void;
 }
 
 const categories = [
+  {
+    id: 'special',
+    icon: Tag,
+    color: 'from-red-500 to-pink-600',
+    bgColor: 'bg-red-50',
+    textColor: 'text-red-700'
+  },
   {
     id: 'vegetable',
     icon: Carrot,
@@ -48,11 +57,16 @@ const categories = [
 
 export function CategoryGrid({ onCategoryClick }: CategoryGridProps) {
   const { language, products, supermarkets } = useApp();
+  
+  // 店铺详情模态窗口状态
+  const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
+  const [selectedStore, setSelectedStore] = useState<Supermarket | null>(null);
 
   const text = {
     en: {
       title: 'Shop by Category',
       subtitle: 'Find the best prices for your favorite products',
+      special: 'Special Offers',
       vegetable: 'Vegetables',
       fruit: 'Fruits',
       meat: 'Meat',
@@ -63,6 +77,7 @@ export function CategoryGrid({ onCategoryClick }: CategoryGridProps) {
     zh: {
       title: '按分类购物',
       subtitle: '为您喜爱的商品找到最优价格',
+      special: '特价商品',
       vegetable: '蔬菜',
       fruit: '水果',
       meat: '肉类',
@@ -72,14 +87,33 @@ export function CategoryGrid({ onCategoryClick }: CategoryGridProps) {
     }
   };
 
-  // Count products in each category
+  // Helper function to clean product names by removing store suffixes
+  const cleanProductName = (name: string) => {
+    return name.replace(/\s*\(Store\s+\d+\)\s*$/i, '').trim();
+  };
+
+  // Count products in each category (using cleaned names for consistency)
   const getCategoryCount = (categoryId: string) => {
     const uniqueProducts = new Set();
-    products
-      .filter(product => product.category === categoryId)
-      .forEach(product => {
-        uniqueProducts.add(product.name_en.toLowerCase());
-      });
+    
+    if (categoryId === 'special') {
+      // For special category, count all products with isSpecial = true
+      products
+        .filter(product => product.isSpecial)
+        .forEach(product => {
+          const cleanedName = cleanProductName(product.name_en);
+          uniqueProducts.add(cleanedName.toLowerCase());
+        });
+    } else {
+      // For regular categories, filter by category
+      products
+        .filter(product => product.category === categoryId)
+        .forEach(product => {
+          const cleanedName = cleanProductName(product.name_en);
+          uniqueProducts.add(cleanedName.toLowerCase());
+        });
+    }
+    
     return uniqueProducts.size;
   };
 
@@ -165,22 +199,48 @@ export function CategoryGrid({ onCategoryClick }: CategoryGridProps) {
 
       {/* Supermarket groups with favorites */}
       <div className="mt-12">
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6">
           <h2 className={`text-2xl font-bold text-gray-900 ${language === 'zh' ? 'font-chinese' : ''}`}>
             {language === 'en' ? 'Browse by Supermarket' : '按超市浏览'}
           </h2>
-          <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-            {language === 'en' ? 'Updated Database' : '数据库已更新'}
-          </div>
         </div>
-        <SupermarketBrandGroups supermarkets={supermarkets} language={language} />
+        <SupermarketBrandGroups 
+          supermarkets={supermarkets} 
+          language={language} 
+          onStoreDetailClick={(store) => {
+            setSelectedStore(store);
+            setIsStoreModalOpen(true);
+          }}
+        />
       </div>
+      
+      {/* 店铺详情模态窗口 */}
+      {isStoreModalOpen && selectedStore && (
+        <StoreDetailModal
+          isOpen={isStoreModalOpen}
+          onClose={() => {
+            setIsStoreModalOpen(false);
+            setSelectedStore(null);
+          }}
+          store={selectedStore}
+          storeProducts={products.filter(p => p.supermarket_id === selectedStore.id)}
+          language={language}
+        />
+      )}
     </div>
   );
 }
 
 // 超市品牌分组组件
-function SupermarketBrandGroups({ supermarkets, language }: { supermarkets: any[]; language: 'en' | 'zh' }) {
+function SupermarketBrandGroups({ 
+  supermarkets, 
+  language, 
+  onStoreDetailClick 
+}: { 
+  supermarkets: any[]; 
+  language: 'en' | 'zh';
+  onStoreDetailClick: (store: Supermarket) => void;
+}) {
   const [expandedBrands, setExpandedBrands] = useState<string[]>(['Woolworths (Countdown)', 'New World']); // 默认展开前两个
 
   // 定义品牌分类逻辑
@@ -287,6 +347,7 @@ function SupermarketBrandGroups({ supermarkets, language }: { supermarkets: any[
                       key={supermarket.id} 
                       supermarket={supermarket} 
                       language={language}
+                      onStoreDetailClick={onStoreDetailClick}
                     />
                   ))}
                 </div>
@@ -323,7 +384,15 @@ function LocationButton({ supermarket, language }: { supermarket: any; language:
 }
 
 // 超市卡片组件
-function SupermarketCard({ supermarket, language }: { supermarket: any; language: 'en' | 'zh' }) {
+function SupermarketCard({ 
+  supermarket, 
+  language, 
+  onStoreDetailClick 
+}: { 
+  supermarket: any; 
+  language: 'en' | 'zh';
+  onStoreDetailClick: (store: Supermarket) => void;
+}) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all duration-200">
       <div className="flex items-start space-x-3">
@@ -353,6 +422,16 @@ function SupermarketCard({ supermarket, language }: { supermarket: any; language
             </div>
             <div className="flex items-center space-x-1">
               <LocationButton supermarket={supermarket} language={language} />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStoreDetailClick(supermarket);
+                }}
+                className="p-1.5 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-all duration-200 hover:scale-110 active:scale-95"
+                title={language === 'en' ? 'View store details' : '查看店铺详情'}
+              >
+                <Info className="w-4 h-4" />
+              </button>
               <StoreSaveButton storeId={supermarket.id} language={language} />
             </div>
           </div>

@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, Navigation, Phone, Clock, Star, Zap, Tag, Plus, Minus, LocateFixed, Pause } from 'lucide-react';
+import { MapPin, Navigation, Phone, Clock, Star, Zap, Tag, Plus, Minus, LocateFixed, Pause, ChevronDown, ChevronUp, Heart } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useUser } from '../contexts/UserContext';
 import { Supermarket } from '../types';
 
 interface MapViewProps {
   selectedSupermarket?: Supermarket | null;
-  onSupermarketSelect?: (supermarket: Supermarket) => void;
+  onSupermarketSelect?: (supermarket: Supermarket | null) => void;
 }
 
 // Leaflet types
@@ -32,12 +34,17 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
   const userMarkerRef = useRef<any>(null);
   const accuracyCircleRef = useRef<any>(null);
 
-  // Debug: 检查超市数据
+  // Supermarket grouping state
+  const [expandedBrands, setExpandedBrands] = useState<string[]>(['Woolworths (Countdown)', 'New World']); // 默认展开前两个
+
+  // Debug: 检查超市数据（仅开发环境）
   useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
     console.log('🗺️ MapView - 超市数据:', supermarkets.length, '个超市');
     supermarkets.forEach((supermarket, index) => {
       console.log(`${index + 1}. ${supermarket.name_en} - 坐标: (${supermarket.lat}, ${supermarket.lng})`);
     });
+    }
   }, [supermarkets]);
 
   // Get special products for each supermarket
@@ -217,6 +224,7 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
     markersRef.current = [];
     
     console.log('📍 开始添加超市标记，共', supermarkets.length, '个超市');
+    console.log('🎯 [ADDMARKERS] Current selectedSupermarket:', selectedSupermarket?.name_en || 'None', 'ID:', selectedSupermarket?.id || 'None');
 
     supermarkets.forEach((supermarket) => {
       console.log(`📍 添加标记: ${supermarket.name_en} - 坐标: (${supermarket.lat}, ${supermarket.lng})`);
@@ -224,28 +232,69 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
       const specialProducts = getSpecialProductsForSupermarket(supermarket.id);
       const hasSpecials = specialProducts.length > 0;
 
-      // Create custom icon
+      const isSelected = selectedSupermarket?.id === supermarket.id;
+      
+      // Create custom icon with enhanced selection state
+      const originalSize = 32; // Base reference size
+      const unselectedSize = Math.round(originalSize * 0.4); // 40% of original (13px)
+      const selectedSize = originalSize * 4; // 4x larger when selected (128px)
+      const hasSelection = selectedSupermarket !== null && selectedSupermarket !== undefined;
+      
+      // If there's a selection, make unselected markers much smaller
+      let currentSize;
+      if (hasSelection) {
+        currentSize = isSelected ? selectedSize : unselectedSize; // Dramatic size difference
+      } else {
+        currentSize = originalSize; // Normal size when nothing is selected
+      }
+      
+      console.log(`📏 [MARKER] ${supermarket.name_en}: size=${currentSize}px, selected=${isSelected}, hasSelection=${hasSelection}, selectedId=${selectedSupermarket?.id}, thisId=${supermarket.id}`);
+      
       const iconHtml = `
-        <div style="position: relative; width: 40px; height: 40px;">
+        <div class="marker-container ${isSelected ? 'selected' : ''}" style="position: relative; width: ${currentSize}px; height: ${currentSize}px; z-index: ${isSelected ? 1000 : 100};">
+          <!-- Selection ring for selected marker -->
+          ${isSelected ? `
+            <div style="position: absolute; top: -${Math.round(currentSize * 0.1)}px; left: -${Math.round(currentSize * 0.1)}px; right: -${Math.round(currentSize * 0.1)}px; bottom: -${Math.round(currentSize * 0.1)}px; border: ${Math.max(3, Math.round(currentSize * 0.03))}px solid #3b82f6; border-radius: 50%; animation: selectedPulse 2s infinite; background: rgba(59, 130, 246, 0.1);"></div>
+            <div style="position: absolute; top: -${Math.round(currentSize * 0.2)}px; left: -${Math.round(currentSize * 0.2)}px; right: -${Math.round(currentSize * 0.2)}px; bottom: -${Math.round(currentSize * 0.2)}px; border: ${Math.max(2, Math.round(currentSize * 0.02))}px solid #3b82f6; border-radius: 50%; animation: selectedPulse 2s infinite 0.5s; opacity: 0.5;"></div>
+          ` : ''}
+          
+                    <!-- Main marker image -->
+          <div style="position: relative; width: ${currentSize}px; height: ${currentSize}px; transform: ${isSelected ? 'scale(1.05)' : 'scale(1)'}; transition: all 0.4s ease; opacity: ${hasSelection && !isSelected ? '0.3' : '1'};">
           <img src="${supermarket.logo_url}" 
-               style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); object-fit: cover;"
+                 style="width: ${currentSize}px; height: ${currentSize}px; border-radius: 50%; border: ${isSelected ? `${Math.max(4, Math.round(currentSize * 0.04))}px solid #3b82f6` : hasSelection ? `${Math.max(1, Math.round(currentSize * 0.08))}px solid rgba(255,255,255,0.6)` : `${Math.max(2, Math.round(currentSize * 0.08))}px solid white`}; box-shadow: ${isSelected ? `0 ${Math.round(currentSize * 0.08)}px ${Math.round(currentSize * 0.2)}px rgba(59, 130, 246, 0.6), 0 ${Math.round(currentSize * 0.04)}px ${Math.round(currentSize * 0.1)}px rgba(0, 0, 0, 0.3)` : hasSelection && !isSelected ? `0 ${Math.round(currentSize * 0.2)}px ${Math.round(currentSize * 0.4)}px rgba(0,0,0,0.15)` : `0 ${Math.round(currentSize * 0.12)}px ${Math.round(currentSize * 0.35)}px rgba(0,0,0,0.3)`}; object-fit: cover; background: white; filter: ${hasSelection && !isSelected ? 'brightness(0.4) saturate(0.3) blur(0.5px)' : 'none'};"
                onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzQ4YjA0YSIgcng9IjIwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7otoXluILjgII8L3RleHQ+PC9zdmc+'" />
+            
+                                                <!-- Special offer indicator -->
           ${showSpecialProducts && hasSpecials ? `
-            <div style="position: absolute; top: -2px; right: -2px; width: 16px; height: 16px; background: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite;">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="white">
+              <div style="position: absolute; top: -${Math.round(currentSize * 0.1)}px; right: -${Math.round(currentSize * 0.1)}px; width: ${Math.max(12, Math.round(currentSize * 0.35))}px; height: ${Math.max(12, Math.round(currentSize * 0.35))}px; background: #ef4444; border: ${Math.max(1, Math.round(currentSize * 0.02))}px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite; z-index: 10; opacity: ${hasSelection && !isSelected ? '0.4' : '1'};">
+                <svg width="${Math.max(6, Math.round(currentSize * 0.2))}" height="${Math.max(6, Math.round(currentSize * 0.2))}" viewBox="0 0 24 24" fill="white">
                 <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+              </div>
+            ` : ''}
+          </div>
+          
+          <!-- Selection indicator badge -->
+          ${isSelected ? `
+            <div style="position: absolute; top: -${Math.round(currentSize * 0.15)}px; left: -${Math.round(currentSize * 0.15)}px; width: ${Math.max(16, Math.round(currentSize * 0.25))}px; height: ${Math.max(16, Math.round(currentSize * 0.25))}px; background: #3b82f6; border: ${Math.max(2, Math.round(currentSize * 0.025))}px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 20; animation: bounce 1s ease-in-out infinite alternate;">
+              <svg width="${Math.max(8, Math.round(currentSize * 0.12))}" height="${Math.max(8, Math.round(currentSize * 0.12))}" viewBox="0 0 24 24" fill="white">
+                <path d="M20.285 2l-11.285 11.567-5.286-5.011-3.714 3.716 9 8.728 15-15.285z"/>
               </svg>
             </div>
           ` : ''}
         </div>
       `;
 
+      // Calculate padding based on current size for effects
+      const padding = Math.round(currentSize * 0.4);
+      const totalSize = currentSize + padding;
+
       const customIcon = window.L.divIcon({
         html: iconHtml,
         className: 'custom-marker',
-        iconSize: [40, 40],
-        iconAnchor: [20, 20],
-        popupAnchor: [0, -20]
+        iconSize: [totalSize, totalSize], // Dynamic size with padding
+        iconAnchor: [totalSize / 2, totalSize / 2], // Center anchor point
+        popupAnchor: [0, -(currentSize / 2 + padding / 4)] // Popup position relative to marker
       });
 
       // 验证坐标有效性
@@ -360,22 +409,73 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
     console.log('✅ 完成添加', markersRef.current.length, '个超市标记');
   };
 
-  // Update markers when special products visibility changes
+  // Update markers when special products visibility changes (selection is handled separately)
   useEffect(() => {
     if (mapInstanceRef.current && mapLoaded) {
       addMarkers(mapInstanceRef.current);
     }
   }, [showSpecialProducts, language]);
 
-  // Update selected marker
+  // Update selected marker with enhanced animation and popup
   useEffect(() => {
-    if (mapLoaded && selectedSupermarket && mapInstanceRef.current) {
+    console.log('🎯 [USEEFFECT] selectedSupermarket changed:', selectedSupermarket?.name_en || 'None', 'ID:', selectedSupermarket?.id || 'None');
+    if (mapLoaded && mapInstanceRef.current) {
+      if (selectedSupermarket) {
       const supermarket = supermarkets.find(s => s.id === selectedSupermarket.id);
-      if (supermarket) {
-        mapInstanceRef.current.setView([supermarket.lat, supermarket.lng], 14);
+        if (supermarket && Number.isFinite(supermarket.lat) && Number.isFinite(supermarket.lng)) {
+          console.log('🎯 [MAP] Focusing on supermarket:', supermarket.name_en, 'at coordinates:', supermarket.lat, supermarket.lng);
+          
+          // Force a higher zoom level for better visibility
+          const targetZoom = 16; // Fixed zoom level for consistency
+          
+          // Smooth animation to the target location
+          mapInstanceRef.current.flyTo([supermarket.lat, supermarket.lng], targetZoom, {
+            duration: 1.2, // Slightly faster animation
+            easeLinearity: 0.2
+          });
+          
+          // Update markers to reflect selection state immediately
+          console.log('🔄 [MAP] Updating markers for selection state, selectedSupermarket:', selectedSupermarket.name_en);
+          addMarkers(mapInstanceRef.current);
+          console.log('✅ [MAP] Markers updated after selection');
+          
+          // Find and open the popup for this marker after animation
+          setTimeout(() => {
+            const targetMarker = markersRef.current.find(marker => {
+              const markerLatLng = marker.getLatLng();
+              const latMatch = Math.abs(markerLatLng.lat - supermarket.lat) < 0.0001;
+              const lngMatch = Math.abs(markerLatLng.lng - supermarket.lng) < 0.0001;
+              console.log('🔍 [MAP] Checking marker:', markerLatLng.lat, markerLatLng.lng, 'matches:', latMatch && lngMatch);
+              return latMatch && lngMatch;
+            });
+            
+            if (targetMarker && targetMarker.getPopup()) {
+              targetMarker.openPopup();
+              console.log('🔥 [MAP] Opened popup for selected supermarket');
+            } else {
+              console.warn('⚠️ [MAP] Could not find marker for selected supermarket');
+            }
+          }, 600); // Reduced delay
+        }
+      } else {
+        // No supermarket selected, reset to default view
+        console.log('🔄 [MAP] Resetting to default view (no selection)');
+        const center = [-43.5321, 172.6362]; // 基督城中心
+        mapInstanceRef.current.flyTo(center, 11, {
+          duration: 1.0,
+          easeLinearity: 0.2
+        });
+        
+        // Close any open popups
+        mapInstanceRef.current.closePopup();
+        
+        // Update markers to clear selection state
+        console.log('🔄 [MAP] Updating markers to clear selection state');
+        addMarkers(mapInstanceRef.current);
+        console.log('✅ [MAP] Markers updated after clearing selection');
       }
     }
-  }, [selectedSupermarket, mapLoaded]);
+  }, [selectedSupermarket, mapLoaded, supermarkets]);
 
   const handleGetDirections = (supermarket: Supermarket) => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${supermarket.lat},${supermarket.lng}`;
@@ -417,6 +517,71 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
   };
 
   const formatDistance = (km: number) => (km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`);
+
+  // 定义品牌分类逻辑
+  const getBrandFromName = (name: string): string => {
+    if (name.includes('Woolworths') || name.includes('Countdown')) return 'Woolworths (Countdown)';
+    if (name.includes('New World')) return 'New World';
+    if (name.includes('Pak\'nSave') || name.includes('PAK\'nSAVE')) return 'Pak\'nSave';
+    if (name.includes('FreshChoice')) return 'FreshChoice';
+    // 将所有亚洲相关超市归类为"亚洲超市"
+    if (name.includes('大华') || name.includes('Lucky') || name.includes('China Town') || name.includes('华人') || 
+        name.includes('Tai Wah') || name.includes('Big T Asian') || name.includes('Korean') || 
+        name.includes('韩国') || name.includes('Ken\'s Mart') || name.includes('Asian') || 
+        name.includes('亚洲') || name.includes('Basics Asian')) return 'Asian Supermarkets';
+    // Four Square和其他未分类的超市都归入"其他超市"
+    return '其他超市';
+  };
+
+  // 按品牌分组超市
+  const brandGroups = supermarkets.reduce((acc, supermarket) => {
+    const brand = getBrandFromName(supermarket.name_en);
+    if (!acc[brand]) acc[brand] = [];
+    acc[brand].push(supermarket);
+    return acc;
+  }, {} as Record<string, Supermarket[]>);
+
+  // 定义品牌颜色和图标
+  const brandStyles: Record<string, {color: string; bgColor: string; icon: string}> = {
+    'Woolworths (Countdown)': { color: 'text-green-700', bgColor: 'bg-green-50 border-green-200', icon: '🛒' },
+    'New World': { color: 'text-blue-700', bgColor: 'bg-blue-50 border-blue-200', icon: '🌍' },
+    'Pak\'nSave': { color: 'text-yellow-700', bgColor: 'bg-yellow-50 border-yellow-200', icon: '💰' },
+    'FreshChoice': { color: 'text-cyan-700', bgColor: 'bg-cyan-50 border-cyan-200', icon: '🥬' },
+    'Asian Supermarkets': { color: 'text-orange-700', bgColor: 'bg-orange-50 border-orange-200', icon: '🍜' },
+    '其他超市': { color: 'text-gray-700', bgColor: 'bg-gray-50 border-gray-200', icon: '🏪' }
+  };
+
+  // 品牌名称多语言支持
+  const getBrandDisplayName = (brand: string): string => {
+    const brandNames: Record<string, Record<string, string>> = {
+      'Woolworths (Countdown)': { en: 'Woolworths (Countdown)', zh: 'Woolworths (Countdown)' },
+      'New World': { en: 'New World', zh: 'New World' },
+      'Pak\'nSave': { en: 'Pak\'nSave', zh: 'Pak\'nSave' },
+      'FreshChoice': { en: 'FreshChoice', zh: 'FreshChoice' },
+      'Asian Supermarkets': { en: 'Asian Supermarkets', zh: '亚洲超市' },
+      '其他超市': { en: 'Other Stores', zh: '其他超市' }
+    };
+    return brandNames[brand]?.[language] || brand;
+  };
+
+  // 定义品牌排序顺序，其他超市放最后
+  const brandOrder = ['Woolworths (Countdown)', 'New World', 'Pak\'nSave', 'FreshChoice', 'Asian Supermarkets', '其他超市'];
+
+  const sortedBrandEntries = Object.entries(brandGroups).sort(([a], [b]) => {
+    const indexA = brandOrder.indexOf(a);
+    const indexB = brandOrder.indexOf(b);
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  });
+
+  const toggleBrand = (brand: string) => {
+    setExpandedBrands(prev => 
+      prev.includes(brand) 
+        ? prev.filter(b => b !== brand)
+        : [...prev, brand]
+    );
+  };
 
   // User location rendering
   const showOrUpdateUserLocation = (lat: number, lng: number, accuracy?: number) => {
@@ -530,11 +695,11 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
-        <h2 className={`text-2xl font-bold text-gray-900 mb-1 ${language === 'zh' ? 'font-chinese' : ''}`}>
+      <div className="p-4 sm:p-6 border-b border-gray-200">
+        <h2 className={`text-xl sm:text-2xl font-bold text-gray-900 mb-1 ${language === 'zh' ? 'font-chinese' : ''}`}>
           {text[language].title}
         </h2>
-        <p className={`text-gray-600 ${language === 'zh' ? 'font-chinese' : ''}`}>
+        <p className={`text-sm sm:text-base text-gray-600 ${language === 'zh' ? 'font-chinese' : ''}`}>
           {text[language].subtitle}
         </p>
         
@@ -542,13 +707,13 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
         <div className="mt-4">
           <button
             onClick={() => setShowSpecialProducts(!showSpecialProducts)}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
               showSpecialProducts
                 ? 'bg-red-100 text-red-700 hover:bg-red-200'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             } ${language === 'zh' ? 'font-chinese' : ''}`}
           >
-            <Zap className="w-4 h-4" />
+            <Zap className="w-3 h-3 sm:w-4 sm:h-4" />
             <span>
               {showSpecialProducts ? specialText[language].hideSpecials : specialText[language].showSpecials}
             </span>
@@ -557,11 +722,11 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
       </div>
 
       {/* Map Container */}
-      <div className="relative">
+      <div className="relative" id="map-container">
         <div 
           ref={mapRef} 
-          className="w-full h-96 bg-gray-100 relative z-0"
-          style={{ minHeight: '400px', zIndex: 0 }}
+          className="w-full h-64 sm:h-96 bg-gray-100 relative z-0"
+          style={{ minHeight: '300px', zIndex: 0 }}
         />
         
         {/* Loading State */}
@@ -636,164 +801,103 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
         )}
       </div>
 
-      {/* Supermarket List */}
-      <div className="p-6">
-        <h3 className={`text-lg font-semibold mb-4 ${language === 'zh' ? 'font-chinese' : ''}`}>
+      {/* Supermarket List with Brand Grouping */}
+      <div className="p-4 sm:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className={`text-lg font-semibold ${language === 'zh' ? 'font-chinese' : ''}`}>
           {text[language].allLocations}
         </h3>
+          <div className="hidden sm:flex items-center space-x-2 text-xs text-gray-500">
+            <MapPin className="w-3 h-3" />
+            <span className={language === 'zh' ? 'font-chinese' : ''}>
+              {language === 'en' ? 'Click to focus on map' : '点击卡片聚焦地图'}
+            </span>
+          </div>
+        </div>
         <div className="space-y-3">
-          {supermarkets.map((supermarket) => (
-            <div
-              key={supermarket.id}
-              onClick={() => onSupermarketSelect?.(supermarket)}
-              className={`flex items-center space-x-4 p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
-                selectedSupermarket?.id === supermarket.id
-                  ? 'border-primary-200 bg-primary-50 shadow-md'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm'
-              }`}
-            >
-              <div className="relative">
-                <img
-                  src={supermarket.logo_url}
-                  alt={language === 'en' ? supermarket.name_en : supermarket.name_zh}
-                  className="w-12 h-12 rounded-full object-cover"
-                />
-                {selectedSupermarket?.id === supermarket.id && (
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary-500 rounded-full flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  </div>
-                )}
-                {showSpecialProducts && getSpecialProductsForSupermarket(supermarket.id).length > 0 && (
-                  <div className="absolute -top-1 -left-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                    <Tag className="w-3 h-3 text-white" />
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex-1">
-                <h4 className={`font-semibold text-gray-900 ${language === 'zh' ? 'font-chinese' : ''}`}>
-                  {language === 'en' ? supermarket.name_en : supermarket.name_zh}
-                </h4>
-                <div className="flex items-center space-x-1 text-sm text-gray-600 mb-1">
-                  <MapPin className="w-4 h-4" />
-                  <span>{supermarket.location}</span>
-                </div>
-                <div className="flex items-center space-x-4 text-sm text-gray-500">
-                  {supermarket.rating && (
-                    <div className="flex items-center space-x-1">
-                      <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                      <span>{supermarket.rating}</span>
+          {sortedBrandEntries.map(([brand, stores]) => {
+            const isExpanded = expandedBrands.includes(brand);
+            const style = brandStyles[brand] || brandStyles['其他超市'];
+            
+            return (
+              <div key={brand} className={`${style.bgColor} rounded-xl border-2 overflow-hidden transition-all duration-300`}>
+                {/* 品牌头部 */}
+                <button
+                  onClick={() => toggleBrand(brand)}
+                  className={`w-full p-3 sm:p-4 flex items-center justify-between hover:bg-opacity-80 transition-all duration-200 ${style.color}`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <span className="text-xl sm:text-2xl">{style.icon}</span>
+                    <div className="text-left">
+                      <h3 className={`text-sm sm:text-lg font-semibold ${language === 'zh' ? 'font-chinese' : ''}`}>
+                        {getBrandDisplayName(brand)}
+                      </h3>
+                      <p className="text-xs sm:text-sm opacity-75">
+                        {stores.length} {language === 'en' ? 'locations' : '家门店'}
+                      </p>
                     </div>
-                  )}
-                  {supermarket.hours && (
-                    <div className="flex items-center space-x-1">
-                      <Clock className="w-4 h-4" />
-                      <span className="text-green-600 font-medium">
-                        {text[language].openNow}
-                      </span>
-                    </div>
-                  )}
-                  {userLocation && Number.isFinite(supermarket.lat) && Number.isFinite(supermarket.lng) && (
-                    <div className="flex items-center space-x-1">
-                      <MapPin className="w-4 h-4" />
-                      <span>
-                        {text[language].distance}: {formatDistance(
-                          getDistanceKm(
-                            userLocation,
-                            { lat: supermarket.lat, lng: supermarket.lng }
-                          )
-                        )}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Special products count */}
-                {showSpecialProducts && (
-                  <div className="mt-1">
-                    {(() => {
-                      const specialCount = getSpecialProductsForSupermarket(supermarket.id).length;
-                      return specialCount > 0 ? (
-                        <div className="flex items-center space-x-1 text-xs text-red-600">
-                          <Zap className="w-3 h-3" />
-                          <span className={language === 'zh' ? 'font-chinese' : ''}>
-                            {specialCount} {language === 'en' ? 'special offers' : '特价商品'}
-                          </span>
-                        </div>
-                      ) : null;
-                    })()}
                   </div>
-                )}
-              </div>
+                  {isExpanded ? 
+                    <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5" /> : 
+                    <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" />
+                  }
+                </button>
 
-              <div className="flex items-center space-x-2">
-                {/* 新增：位置查看按钮 */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleViewLocation(supermarket);
-                  }}
-                  className="p-2 text-green-600 hover:bg-green-100 rounded-full transition-colors"
-                  title={language === 'en' ? 'View on Google Maps' : '在Google地图中查看'}
-                >
-                  <MapPin className="w-5 h-5" />
-                </button>
-                
-                {/* 现有：导航按钮 */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleGetDirections(supermarket);
-                  }}
-                  className="p-2 text-primary-600 hover:bg-primary-100 rounded-full transition-colors"
-                  title={text[language].directions}
-                >
-                  <Navigation className="w-5 h-5" />
-                </button>
-                
-                {/* 现有：电话按钮 */}
-                {supermarket.phone && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCall(supermarket.phone!);
-                    }}
-                    className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-                    title={text[language].call}
-                  >
-                    <Phone className="w-5 h-5" />
-                  </button>
+                {/* 超市列表 */}
+                {isExpanded && (
+                  <div className="px-3 pb-3 sm:px-4 sm:pb-4">
+                    <div className="space-y-2">
+                      {stores.map((supermarket) => (
+                        <SupermarketCard 
+              key={supermarket.id}
+                          supermarket={supermarket} 
+                          language={language}
+                          selectedSupermarket={selectedSupermarket}
+                          onSupermarketSelect={onSupermarketSelect}
+                          showSpecialProducts={showSpecialProducts}
+                          getSpecialProductsForSupermarket={getSpecialProductsForSupermarket}
+                          userLocation={userLocation}
+                          formatDistance={formatDistance}
+                          getDistanceKm={getDistanceKm}
+                          handleViewLocation={handleViewLocation}
+                          handleGetDirections={handleGetDirections}
+                          handleCall={handleCall}
+                          text={text}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
       {/* Quick Stats */}
-      <div className="bg-gradient-to-r from-primary-50 to-blue-50 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-gradient-to-r from-primary-50 to-blue-50 p-4 sm:p-6">
+        <div className="grid grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-primary-600">{supermarkets.length}</div>
-            <div className={`text-sm text-gray-600 ${language === 'zh' ? 'font-chinese' : ''}`}>
+            <div className="text-lg sm:text-2xl font-bold text-primary-600">{supermarkets.length}</div>
+            <div className={`text-xs sm:text-sm text-gray-600 ${language === 'zh' ? 'font-chinese' : ''}`}>
               {language === 'en' ? 'Total Stores' : '总店铺数'}
             </div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-lg sm:text-2xl font-bold text-red-600">
               {products.filter(p => p.isSpecial).length}
             </div>
-            <div className={`text-sm text-gray-600 ${language === 'zh' ? 'font-chinese' : ''}`}>
+            <div className={`text-xs sm:text-sm text-gray-600 ${language === 'zh' ? 'font-chinese' : ''}`}>
               {language === 'en' ? 'Special Offers' : '特价商品'}
             </div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-lg sm:text-2xl font-bold text-green-600">
               {products.filter(p => p.isSpecial).length > 0 
                 ? Math.round(products.filter(p => p.isSpecial).reduce((acc, p) => acc + (p.discount || 0), 0) / products.filter(p => p.isSpecial).length)
                 : 0}%
             </div>
-            <div className={`text-sm text-gray-600 ${language === 'zh' ? 'font-chinese' : ''}`}>
+            <div className={`text-xs sm:text-sm text-gray-600 ${language === 'zh' ? 'font-chinese' : ''}`}>
               {language === 'en' ? 'Avg Discount' : '平均折扣'}
             </div>
           </div>
@@ -825,6 +929,46 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
           }
         }
 
+        @keyframes selectedPulse {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.6;
+            transform: scale(1.2);
+          }
+        }
+
+        @keyframes bounce {
+          0% {
+            transform: translateY(0px);
+          }
+          100% {
+            transform: translateY(-6px);
+          }
+        }
+
+        /* Enhanced marker styles */
+        .custom-marker {
+          background: transparent !important;
+          border: none !important;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        
+        .marker-container {
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        
+        .marker-container.selected {
+          z-index: 1000 !important;
+        }
+        
+        /* Smooth scaling animation for unselected markers */
+        .marker-container:not(.selected) {
+          transform-origin: center center;
+        }
+
         /* User location styles */
         .user-location-icon { position: relative; width: 20px; height: 20px; }
         .user-location-icon .user-dot {
@@ -836,6 +980,253 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
           background: rgba(59, 130, 246, 0.25); animation: pulse 2s infinite;
         }
       `}</style>
+    </div>
+  );
+}
+
+// 超市卡片组件
+function SupermarketCard({ 
+  supermarket, 
+  language, 
+  selectedSupermarket, 
+  onSupermarketSelect, 
+  showSpecialProducts, 
+  getSpecialProductsForSupermarket, 
+  userLocation, 
+  formatDistance, 
+  getDistanceKm, 
+  handleViewLocation, 
+  handleGetDirections, 
+  handleCall, 
+  text 
+}: {
+  supermarket: Supermarket;
+  language: 'en' | 'zh';
+  selectedSupermarket?: Supermarket | null;
+  onSupermarketSelect?: (supermarket: Supermarket | null) => void;
+  showSpecialProducts: boolean;
+  getSpecialProductsForSupermarket: (id: number) => any[];
+  userLocation: { lat: number; lng: number } | null;
+  formatDistance: (km: number) => string;
+  getDistanceKm: (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => number;
+  handleViewLocation: (supermarket: Supermarket) => void;
+  handleGetDirections: (supermarket: Supermarket) => void;
+  handleCall: (phone: string) => void;
+  text: any;
+}) {
+  const { isAuthenticated, user } = useAuth();
+  const { checkIsStoreFavorite, addToStoreFavorites, removeFromStoreFavorites } = useUser();
+  const [saving, setSaving] = useState(false);
+  
+  const saved = checkIsStoreFavorite(supermarket.id);
+
+  const handleSaveClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!isAuthenticated || !user) {
+      window.dispatchEvent(new CustomEvent('showLoginModal'));
+      return;
+    }
+    
+    if (saving) return;
+    
+    setSaving(true);
+    
+    try {
+      let result = false;
+      if (saved) {
+        result = await removeFromStoreFavorites(supermarket.id);
+      } else {
+        result = await addToStoreFavorites(supermarket.id);
+      }
+      
+      if (result) {
+        window.dispatchEvent(new CustomEvent('storeFavoritesUpdated'));
+      }
+    } catch (error) {
+      console.error('收藏操作失败:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCardClick = () => {
+    console.log('🔄 [CARD] Clicked supermarket:', supermarket.name_en, 'ID:', supermarket.id);
+    console.log('🔄 [CARD] Current selectedSupermarket:', selectedSupermarket?.name_en || 'None', 'ID:', selectedSupermarket?.id || 'None');
+    
+    // If clicking the same supermarket, deselect it
+    if (selectedSupermarket?.id === supermarket.id) {
+      console.log('🔄 [CARD] Deselecting current supermarket');
+      console.log('🔄 [CARD] Calling onSupermarketSelect with null');
+      onSupermarketSelect?.(null);
+    } else {
+      console.log('🔄 [CARD] Selecting new supermarket');
+      console.log('🔄 [CARD] Calling onSupermarketSelect with:', supermarket.name_en);
+      onSupermarketSelect?.(supermarket);
+    }
+    
+    // Scroll to map on mobile for better UX
+    if (window.innerWidth < 768) { // Mobile breakpoint
+      setTimeout(() => {
+        const mapElement = document.getElementById('map-container');
+        if (mapElement) {
+          mapElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+        }
+      }, 100);
+    }
+  };
+
+  return (
+    <div
+      onClick={handleCardClick}
+      className={`bg-white rounded-lg border cursor-pointer transition-all duration-300 p-3 sm:p-4 transform hover:scale-[1.02] ${
+                selectedSupermarket?.id === supermarket.id
+          ? 'border-primary-300 bg-primary-50 shadow-lg ring-2 ring-primary-200 ring-opacity-50'
+          : 'border-gray-200 hover:border-primary-200 hover:bg-gray-50 hover:shadow-md'
+              }`}
+            >
+      <div className="flex items-start space-x-3">
+        <div className="relative flex-shrink-0">
+                <img
+                  src={supermarket.logo_url}
+                  alt={language === 'en' ? supermarket.name_en : supermarket.name_zh}
+            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover"
+            onError={(e) => {
+              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZGllbnQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgo8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM0I4MkY2O3N0b3Atb3BhY2l0eToxIiAvPgo8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4QjVDRjY7c3RvcC1vcGFjaXR5OjEiIC8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSJ1cmwoI2dyYWRpZW50KSIgcng9IjIwIi8+Cjxzdmcgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiB4PSIxMCIgeT0iMTAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgo8cGF0aCBkPSJNNiAyTDMgNnYxNGEyIDIgMCAwIDAgMiAyaDE0YTIgMiAwIDAgMCAyLTJWNmwtMy00eiIvPgo8cGF0aCBkPSJtOCA2IDQgNCIvPgo8L3N2Zz4KPC9zdmc+';
+            }}
+                />
+                {selectedSupermarket?.id === supermarket.id && (
+            <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-primary-500 rounded-full flex items-center justify-center">
+              <div className="w-1 h-1 sm:w-2 sm:h-2 bg-white rounded-full"></div>
+                  </div>
+                )}
+                {showSpecialProducts && getSpecialProductsForSupermarket(supermarket.id).length > 0 && (
+            <div className="absolute -top-1 -left-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 rounded-full flex items-center justify-center">
+              <Tag className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
+                  </div>
+                )}
+              </div>
+              
+        <div className="flex-1 min-w-0">
+          <h4 className={`font-semibold text-gray-900 text-sm sm:text-base mb-1 ${language === 'zh' ? 'font-chinese' : ''}`}>
+                  {language === 'en' ? supermarket.name_en : supermarket.name_zh}
+                </h4>
+          <div className="flex items-center space-x-1 text-xs sm:text-sm text-gray-600 mb-1">
+            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+            <span className="truncate">{supermarket.location}</span>
+                </div>
+          
+          {/* Stats row - 移动端优化 */}
+          <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm text-gray-500">
+                  {supermarket.rating && (
+                    <div className="flex items-center space-x-1">
+                <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500 fill-current" />
+                      <span>{supermarket.rating}</span>
+                    </div>
+                  )}
+                  {supermarket.hours && (
+                    <div className="flex items-center space-x-1">
+                <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="text-green-600 font-medium">
+                        {text[language].openNow}
+                      </span>
+                    </div>
+                  )}
+                  {userLocation && Number.isFinite(supermarket.lat) && Number.isFinite(supermarket.lng) && (
+                    <div className="flex items-center space-x-1">
+                <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span>
+                  {formatDistance(
+                          getDistanceKm(
+                            userLocation,
+                            { lat: supermarket.lat, lng: supermarket.lng }
+                          )
+                        )}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Special products count */}
+                {showSpecialProducts && (
+                  <div className="mt-1">
+                    {(() => {
+                      const specialCount = getSpecialProductsForSupermarket(supermarket.id).length;
+                      return specialCount > 0 ? (
+                        <div className="flex items-center space-x-1 text-xs text-red-600">
+                          <Zap className="w-3 h-3" />
+                          <span className={language === 'zh' ? 'font-chinese' : ''}>
+                            {specialCount} {language === 'en' ? 'special offers' : '特价商品'}
+                          </span>
+                        </div>
+                      ) : null;
+                    })()}
+                  </div>
+                )}
+              </div>
+
+        {/* Action buttons - 移动端优化 */}
+        <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+          {/* 收藏按钮 */}
+          <button
+            onClick={handleSaveClick}
+            className={`p-1.5 sm:p-2 rounded-full transition-all duration-200 ${
+              saved 
+                ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            } ${
+              saving 
+                ? 'opacity-50 cursor-not-allowed' 
+                : 'hover:scale-110 active:scale-95'
+            }`}
+            disabled={saving}
+            title={saved ? (language === 'en' ? 'Remove from favorites' : '取消收藏') : (language === 'en' ? 'Add to favorites' : '添加收藏')}
+          >
+            <Heart className={`w-3 h-3 sm:w-4 sm:h-4 transition-all ${saved ? 'fill-current text-blue-600' : 'text-gray-500'}`} />
+          </button>
+          
+          {/* 位置查看按钮 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewLocation(supermarket);
+                  }}
+            className="p-1.5 sm:p-2 text-green-600 hover:bg-green-100 rounded-full transition-colors"
+                  title={language === 'en' ? 'View on Google Maps' : '在Google地图中查看'}
+                >
+            <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+                </button>
+                
+          {/* 导航按钮 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleGetDirections(supermarket);
+                  }}
+            className="p-1.5 sm:p-2 text-primary-600 hover:bg-primary-100 rounded-full transition-colors"
+                  title={text[language].directions}
+                >
+            <Navigation className="w-3 h-3 sm:w-4 sm:h-4" />
+                </button>
+                
+          {/* 电话按钮 */}
+                {supermarket.phone && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCall(supermarket.phone!);
+                    }}
+              className="p-1.5 sm:p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                    title={text[language].call}
+                  >
+              <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
     </div>
   );
 }
