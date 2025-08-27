@@ -332,3 +332,4 @@ DROP FUNCTION IF EXISTS clean_product_name(TEXT);
 
 -- 显示完成消息
 SELECT '🎉 数据库清理完成！重复数据已删除，约束已添加，性能已优化。' as completion_message;
+

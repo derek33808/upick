@@ -307,3 +307,4 @@ SELECT '
 -- 重置输出格式
 \pset format unaligned
 \pset border 0
+
