@@ -1,12 +1,13 @@
-import { ArrowLeft, MapPin, Star, Clock, Zap, TrendingUp, TrendingDown, Navigation, ExternalLink, Heart, LogIn, ShoppingCart, Plus, Check, Package, Award } from 'lucide-react';
+import { ArrowLeft, MapPin, Star, Clock, Zap, TrendingUp, TrendingDown, Navigation, Heart, LogIn, Plus, Check, Package, Award, Info } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
-import { Product } from '../types';
+import { Product, Supermarket } from '../types';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { PriceHistoryChart } from './PriceHistoryChart';
 import { generateSeededSeries } from '../lib/chartUtils';
 import { generateProductPlaceholder } from '../lib/imageUtils';
+import { StoreDetailModal } from './StoreDetailModal';
 
 interface ProductCompareViewProps {
   productName: string;
@@ -22,6 +23,8 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
   const [favoriteStates, setFavoriteStates] = useState<Map<number, boolean>>(new Map());
   const [shoppingListStates, setShoppingListStates] = useState<Map<number, boolean>>(new Map());
   const [updatingStates, setUpdatingStates] = useState<Map<number, { favorite: boolean; shopping: boolean }>>(new Map());
+  const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
+  const [selectedStore, setSelectedStore] = useState<Supermarket | null>(null);
 
   const text = {
     en: {
@@ -64,7 +67,8 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
       shoppingListRemoved: 'Removed from shopping list!',
       closeDetails: 'Close Details',
       showDetails: 'Show Details',
-      hideDetails: 'Hide Details'
+      hideDetails: 'Hide Details',
+      storeDetails: 'Store Details'
     },
     zh: {
       back: '返回分类',
@@ -106,7 +110,8 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
       shoppingListRemoved: '已从清单中移除！',
       closeDetails: '关闭详情',
       showDetails: '显示详情',
-      hideDetails: '隐藏详情'
+      hideDetails: '隐藏详情',
+      storeDetails: '超市详情'
     }
   };
 
@@ -119,6 +124,21 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
   const matchingProducts = products.filter(product => 
     cleanProductName(product.name_en).toLowerCase() === cleanProductName(productName).toLowerCase()
   ).sort((a, b) => a.price - b.price);
+
+  // Debug: Log supermarket data for the first few products
+  if (matchingProducts.length > 0) {
+    console.log('🔍 [ProductCompareView] Debug supermarket data:');
+    matchingProducts.slice(0, 3).forEach((product, index) => {
+      console.log(`Product ${index + 1}:`, {
+        id: product.id,
+        name: product.name_en,
+        supermarket_id: product.supermarket_id,
+        supermarket: product.supermarket,
+        hasLogo: !!product.supermarket?.logo_url,
+        hasName: !!product.supermarket?.name_en
+      });
+    });
+  }
 
   // Stable series for header chart
   const stableEndDateRef = useRef<Date>(new Date());
@@ -140,6 +160,13 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
     if (product.supermarket?.lat && product.supermarket?.lng) {
       const url = `https://www.google.com/maps/search/?api=1&query=${product.supermarket.lat},${product.supermarket.lng}`;
       window.open(url, '_blank');
+    }
+  };
+
+  const handleStoreDetailsClick = (product: Product) => {
+    if (product.supermarket) {
+      setSelectedStore(product.supermarket);
+      setIsStoreModalOpen(true);
     }
   };
 
@@ -366,13 +393,23 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <img
-              src={cheapestProduct?.supermarket?.logo_url}
-              alt={cheapestProduct?.supermarket?.name_en}
-              className="w-5 h-5 rounded-full object-cover"
-            />
+            {cheapestProduct?.supermarket?.logo_url ? (
+              <img
+                src={cheapestProduct.supermarket.logo_url}
+                alt={cheapestProduct.supermarket.name_en}
+                className="w-5 h-5 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                {cheapestProduct?.supermarket_id || '?'}
+              </div>
+            )}
             <span className={`text-sm text-green-700 font-medium truncate ${language === 'zh' ? 'font-chinese' : ''}`}>
-              {language === 'en' ? cheapestProduct?.supermarket?.name_en : cheapestProduct?.supermarket?.name_zh}
+              {cheapestProduct?.supermarket ? (
+                language === 'en' ? cheapestProduct.supermarket.name_en : cheapestProduct.supermarket.name_zh
+              ) : (
+                `${language === 'en' ? 'Store' : '商店'} ${cheapestProduct?.supermarket_id || '?'}`
+              )}
             </span>
           </div>
         </div>
@@ -407,13 +444,23 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <img
-              src={expensiveProduct?.supermarket?.logo_url}
-              alt={expensiveProduct?.supermarket?.name_en}
-              className="w-5 h-5 rounded-full object-cover"
-            />
+            {expensiveProduct?.supermarket?.logo_url ? (
+              <img
+                src={expensiveProduct.supermarket.logo_url}
+                alt={expensiveProduct.supermarket.name_en}
+                className="w-5 h-5 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                {expensiveProduct?.supermarket_id || '?'}
+              </div>
+            )}
             <span className={`text-sm text-red-700 font-medium truncate ${language === 'zh' ? 'font-chinese' : ''}`}>
-              {language === 'en' ? expensiveProduct?.supermarket?.name_en : expensiveProduct?.supermarket?.name_zh}
+              {expensiveProduct?.supermarket ? (
+                language === 'en' ? expensiveProduct.supermarket.name_en : expensiveProduct.supermarket.name_zh
+              ) : (
+                `${language === 'en' ? 'Store' : '商店'} ${expensiveProduct?.supermarket_id || '?'}`
+              )}
             </span>
           </div>
         </div>
@@ -436,22 +483,45 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
               <div className="flex items-center justify-between mb-3 lg:mb-4">
                 <div className="flex items-center space-x-3">
                   <div className="relative">
-                    <img
-                      src={product.supermarket?.logo_url}
-                      alt={language === 'en' ? product.supermarket?.name_en : product.supermarket?.name_zh}
-                      className="w-10 h-10 lg:w-12 lg:h-12 rounded-full object-cover border-2 border-white shadow-sm"
-                    />
+                    {product.supermarket?.logo_url ? (
+                      <img
+                        src={product.supermarket.logo_url}
+                        alt={language === 'en' ? product.supermarket.name_en : product.supermarket.name_zh}
+                        className="w-10 h-10 lg:w-12 lg:h-12 rounded-full object-cover border-2 border-white shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-primary-500 border-2 border-white shadow-sm flex items-center justify-center text-white font-bold text-lg">
+                        {product.supermarket_id || '?'}
+                      </div>
+                    )}
                     {product.price === minPrice && (
                       <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full w-4 h-4 lg:w-5 lg:h-5 flex items-center justify-center text-xs font-bold">
                         1
                       </div>
                     )}
                   </div>
-                  <div>
-                    <div className={`font-semibold text-gray-900 text-sm lg:text-base ${language === 'zh' ? 'font-chinese' : ''}`}>
-                      {language === 'en' ? product.supermarket?.name_en : product.supermarket?.name_zh}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`font-semibold text-gray-900 text-sm lg:text-base ${language === 'zh' ? 'font-chinese' : ''}`}>
+                        {product.supermarket ? (
+                          language === 'en' ? product.supermarket.name_en : product.supermarket.name_zh
+                        ) : (
+                          `${language === 'en' ? 'Store' : '商店'} ${product.supermarket_id}`
+                        )}
+                      </div>
+                      {product.supermarket && (
+                        <button
+                          onClick={() => handleStoreDetailsClick(product)}
+                          className="flex items-center space-x-1 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors flex-shrink-0"
+                        >
+                          <Info className="w-3 h-3" />
+                          <span className={`hidden sm:inline ${language === 'zh' ? 'font-chinese' : ''}`}>
+                            {text[language].storeDetails}
+                          </span>
+                        </button>
+                      )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 text-xs lg:text-sm">
+                    <div className="flex items-center gap-2 text-xs lg:text-sm">
                       <span className={`text-gray-500 ${language === 'zh' ? 'font-chinese' : ''}`}>
                         {text[language].updated} {new Date(product.updated_at).toLocaleDateString()}
                       </span>
@@ -479,17 +549,17 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
               </div>
 
               {/* Toggle Details Button */}
-              <div className="mt-3">
+              <div className="mt-4">
                 <button
                   onClick={() => toggleExpanded(product.id)}
-                  className={`w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg transition-colors text-sm font-medium ${
+                  className={`w-full flex items-center justify-center px-3 py-2.5 rounded-lg transition-colors font-medium ${
                     expandedProducts.has(product.id)
                       ? 'bg-primary-100 text-primary-700 hover:bg-primary-200'
                       : 'bg-primary-500 text-white hover:bg-primary-600'
                   } ${language === 'zh' ? 'font-chinese' : ''}`}
                 >
-                  <Package className="w-4 h-4" />
-                  <span>
+                  <Package className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="ml-2 text-sm sm:text-base">
                     {expandedProducts.has(product.id) ? text[language].hideDetails : text[language].showDetails}
                   </span>
                 </button>
@@ -683,6 +753,20 @@ export function ProductCompareView({ productName, onBack, onProductClick }: Prod
           )}
         </div>
       </div>
+
+      {/* Store Detail Modal */}
+      {isStoreModalOpen && selectedStore && (
+        <StoreDetailModal
+          isOpen={isStoreModalOpen}
+          onClose={() => {
+            setIsStoreModalOpen(false);
+            setSelectedStore(null);
+          }}
+          store={selectedStore}
+          storeProducts={products.filter(p => p.supermarket_id === selectedStore.id)}
+          language={language}
+        />
+      )}
     </div>
   );
 }

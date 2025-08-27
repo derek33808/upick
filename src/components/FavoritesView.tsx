@@ -217,61 +217,63 @@ export function FavoritesView() {
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-0.5 md:space-x-1 bg-gray-100 p-1 rounded-lg mb-8 overflow-hidden">
-        <button
-          onClick={() => setActiveTab('single')}
-          className={`flex-1 py-2.5 md:py-2 px-2 md:px-4 rounded-md text-xs md:text-sm font-medium transition-colors min-w-0 ${
-            activeTab === 'single'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          } ${language === 'zh' ? 'font-chinese' : ''}`}
-        >
-          <div className="flex flex-col md:flex-row items-center justify-center space-y-1 md:space-y-0 md:space-x-2">
-            <div className="flex items-center space-x-1">
-              <Heart className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
-              <span className="text-xs md:text-sm truncate">{text[language].productFavorites}</span>
+      <div className="bg-gray-100 p-1 rounded-lg mb-8">
+        <div className="grid grid-cols-3 gap-1">
+          <button
+            onClick={() => setActiveTab('single')}
+            className={`py-3 px-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'single'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            } ${language === 'zh' ? 'font-chinese' : ''}`}
+          >
+            <div className="flex flex-col items-center space-y-2">
+              <div className="flex items-center space-x-1">
+                <Heart className="w-4 h-4 flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium">{text[language].productFavorites}</span>
+              </div>
+              <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">
+                {productFavorites.length}
+              </span>
             </div>
-            <span className="bg-gray-200 text-gray-700 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-xs flex-shrink-0">
-              {productFavorites.length}
-            </span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('storeProducts')}
-          className={`flex-1 py-2.5 md:py-2 px-2 md:px-4 rounded-md text-xs md:text-sm font-medium transition-colors min-w-0 ${
-            activeTab === 'storeProducts'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          } ${language === 'zh' ? 'font-chinese' : ''}`}
-        >
-          <div className="flex flex-col md:flex-row items-center justify-center space-y-1 md:space-y-0 md:space-x-2">
-            <div className="flex items-center space-x-1">
-              <Store className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
-              <span className="text-xs md:text-sm truncate">{text[language].storeProductFavorites}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('storeProducts')}
+            className={`py-3 px-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'storeProducts'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            } ${language === 'zh' ? 'font-chinese' : ''}`}
+          >
+            <div className="flex flex-col items-center space-y-2">
+              <div className="flex items-center space-x-1">
+                <Store className="w-4 h-4 flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium">{text[language].storeProductFavorites}</span>
+              </div>
+              <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">
+                {favorites.length}
+              </span>
             </div>
-            <span className="bg-gray-200 text-gray-700 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-xs flex-shrink-0">
-              {favorites.length}
-            </span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('stores')}
-          className={`flex-1 py-2.5 md:py-2 px-2 md:px-4 rounded-md text-xs md:text-sm font-medium transition-colors min-w-0 ${
-            activeTab === 'stores'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          } ${language === 'zh' ? 'font-chinese' : ''}`}
-        >
-          <div className="flex flex-col md:flex-row items-center justify-center space-y-1 md:space-y-0 md:space-x-2">
-            <div className="flex items-center space-x-1">
-              <Store className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
-              <span className="text-xs md:text-sm truncate">{text[language].storeFavorites}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('stores')}
+            className={`py-3 px-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'stores'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            } ${language === 'zh' ? 'font-chinese' : ''}`}
+          >
+            <div className="flex flex-col items-center space-y-2">
+              <div className="flex items-center space-x-1">
+                <Store className="w-4 h-4 flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium">{text[language].storeFavorites}</span>
+              </div>
+              <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">
+                {storeFavorites.length}
+              </span>
             </div>
-            <span className="bg-gray-200 text-gray-700 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-xs flex-shrink-0">
-              {storeFavorites.length}
-            </span>
-          </div>
-        </button>
+          </button>
+        </div>
       </div>
 
       {/* Content */}

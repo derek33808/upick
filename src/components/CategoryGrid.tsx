@@ -241,7 +241,7 @@ function SupermarketBrandGroups({
   language: 'en' | 'zh';
   onStoreDetailClick: (store: Supermarket) => void;
 }) {
-  const [expandedBrands, setExpandedBrands] = useState<string[]>(['Woolworths (Countdown)', 'New World']); // 默认展开前两个
+  const [expandedBrands, setExpandedBrands] = useState<string[]>([]); // 默认全部关闭
 
   // 定义品牌分类逻辑
   const getBrandFromName = (name: string): string => {

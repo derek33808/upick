@@ -1,4 +1,4 @@
-import { X, Heart, MapPin, Star, Clock, Package, Award, LogIn, Navigation, Plus, Check, Store } from 'lucide-react';
+import { X, Heart, MapPin, Star, Clock, Package, Award, LogIn, Navigation, Plus, Check } from 'lucide-react';
 import { Product } from '../types';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,12 +24,6 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
     checkIsInCart,
     addToCart,
     removeFromCart,
-    checkIsProductFavorite,
-    addToProductFavorites,
-    removeFromProductFavorites,
-    checkIsStoreFavorite,
-    addToStoreFavorites,
-    removeFromStoreFavorites,
     isLoading
   } = useUser();
   
@@ -37,8 +31,6 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
   
   const isFavorite = checkIsFavorite(product.id);
   const cartStatus = checkIsInCart(product.id);
-  const isProductFavorite = checkIsProductFavorite(product.name_en);
-  const isStoreFavorite = checkIsStoreFavorite(product.supermarket_id);
 
   // Find similar products from other supermarkets
   const similarProducts = products.filter(p => 
@@ -163,54 +155,7 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
     }
   };
 
-  const handleProductFavoriteToggle = async () => {
-    if (!isAuthenticated || !user) {
-      window.dispatchEvent(new CustomEvent('showLoginModal'));
-      return;
-    }
 
-    setIsUpdating(true);
-    try {
-      if (isProductFavorite) {
-        await removeFromProductFavorites(product.name_en);
-        console.log('商品收藏已移除');
-      } else {
-        await addToProductFavorites({
-          name_en: product.name_en,
-          name_zh: product.name_zh,
-          image: product.image,
-          category: product.category
-        });
-        console.log('商品已添加到收藏');
-      }
-    } catch (error) {
-      console.error('商品收藏操作失败:', error);
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const handleStoreFavoriteToggle = async () => {
-    if (!isAuthenticated || !user) {
-      window.dispatchEvent(new CustomEvent('showLoginModal'));
-      return;
-    }
-
-    setIsUpdating(true);
-    try {
-      if (isStoreFavorite) {
-        await removeFromStoreFavorites(product.supermarket_id);
-        console.log('店铺收藏已移除');
-      } else {
-        await addToStoreFavorites(product.supermarket_id);
-        console.log('店铺已添加到收藏');
-      }
-    } catch (error) {
-      console.error('店铺收藏操作失败:', error);
-    } finally {
-      setIsUpdating(false);
-    }
-  };
 
   const handleViewOnMap = (product: Product) => {
     if (product.supermarket?.lat && product.supermarket?.lng) {
@@ -229,10 +174,10 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
   const timeAgo = formatDistanceToNow(new Date(product.updated_at), { addSuffix: true });
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 10000 }}>
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4" style={{ zIndex: 10000 }}>
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between rounded-t-2xl">
+        <div className="flex-shrink-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between rounded-t-2xl">
           <h2 className={`text-xl font-bold text-gray-900 ${language === 'zh' ? 'font-chinese' : ''}`}>
             {text[language].productDetails}
           </h2>
@@ -245,7 +190,7 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {/* Product Image */}
           <div className="relative mb-6">
             <img
@@ -395,77 +340,13 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-6">
-              {/* 单一产品收藏按钮 */}
-              {isAuthenticated ? (
-                <button
-                  type="button"
-                  onClick={handleProductFavoriteToggle}
-                  disabled={isUpdating || isLoading}
-                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors disabled:opacity-50 ${
-                    isProductFavorite
-                      ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  } ${language === 'zh' ? 'font-chinese' : ''}`}
-                >
-                  {isUpdating ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
-                  ) : (
-                    <Heart className={`w-5 h-5 ${isProductFavorite ? 'fill-current' : ''}`} />
-                  )}
-                  <span>{isProductFavorite ? '取消单一产品收藏' : '单一产品收藏'}</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.dispatchEvent(new CustomEvent('showLoginModal'));
-                  }}
-                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors bg-purple-100 text-purple-700 hover:bg-purple-200 ${language === 'zh' ? 'font-chinese' : ''}`}
-                >
-                  <Heart className="w-5 h-5" />
-                  <span>登录后收藏（单一产品）</span>
-                </button>
-              )}
-
-              {/* 店铺产品收藏按钮 */}
-              {isAuthenticated ? (
-                <button
-                  type="button"
-                  onClick={handleStoreFavoriteToggle}
-                  disabled={isUpdating || isLoading}
-                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors disabled:opacity-50 ${
-                    isStoreFavorite
-                      ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  } ${language === 'zh' ? 'font-chinese' : ''}`}
-                >
-                  {isUpdating ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
-                  ) : (
-                    <Store className={`w-5 h-5 ${isStoreFavorite ? 'fill-current' : ''}`} />
-                  )}
-                  <span>{isStoreFavorite ? '取消店铺产品收藏' : '店铺产品收藏'}</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.dispatchEvent(new CustomEvent('showLoginModal'));
-                  }}
-                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200 ${language === 'zh' ? 'font-chinese' : ''}`}
-                >
-                  <Store className="w-5 h-5" />
-                  <span>登录后收藏（店铺产品）</span>
-                </button>
-              )}
-
-              {/* Favorite Button (Product-specific) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+              {/* Favorite Button */}
               {isAuthenticated ? (
                 <button
                   onClick={handleFavoriteToggle}
                   disabled={isUpdating || isLoading}
-                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors disabled:opacity-50 ${
+                  className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors disabled:opacity-50 ${
                     isFavorite
                       ? 'bg-red-100 text-red-700 hover:bg-red-200'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -485,7 +366,7 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent('showLoginModal'));
                   }}
-                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors bg-primary-100 text-primary-700 hover:bg-primary-200 ${language === 'zh' ? 'font-chinese' : ''}`}
+                  className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors bg-primary-100 text-primary-700 hover:bg-primary-200 ${language === 'zh' ? 'font-chinese' : ''}`}
                 >
                   <LogIn className="w-5 h-5" />
                   <span>{text[language].loginToFavorite}</span>
@@ -497,7 +378,7 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
                 <button
                   onClick={handleCartToggle}
                   disabled={isUpdating || isLoading}
-                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors disabled:opacity-50 ${
+                  className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors disabled:opacity-50 ${
                     cartStatus.inCart
                       ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
                       : 'bg-primary-100 text-primary-700 hover:bg-primary-200'
@@ -519,7 +400,7 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent('showLoginModal'));
                   }}
-                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors bg-primary-100 text-primary-700 hover:bg-primary-200 ${language === 'zh' ? 'font-chinese' : ''}`}
+                  className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors bg-primary-100 text-primary-700 hover:bg-primary-200 ${language === 'zh' ? 'font-chinese' : ''}`}
                 >
                   <LogIn className="w-5 h-5" />
                   <span>{text[language].loginToShoppingList}</span>

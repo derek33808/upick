@@ -35,7 +35,7 @@ export function MapView({ selectedSupermarket, onSupermarketSelect }: MapViewPro
   const accuracyCircleRef = useRef<any>(null);
 
   // Supermarket grouping state
-  const [expandedBrands, setExpandedBrands] = useState<string[]>(['Woolworths (Countdown)', 'New World']); // 默认展开前两个
+  const [expandedBrands, setExpandedBrands] = useState<string[]>([]); // 默认全部关闭
 
   // Debug: 检查超市数据（仅开发环境）
   useEffect(() => {

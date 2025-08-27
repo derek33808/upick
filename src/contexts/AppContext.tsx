@@ -49,20 +49,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (supermarketsData.length > 0) {
         setSupermarkets(supermarketsData);
         console.log('✅ 成功从数据库加载', supermarketsData.length, '个超市');
-        return true;
+        return supermarketsData; // 返回实际数据
       } else {
         console.log('📋 数据库中没有超市数据，使用mock数据');
         setSupermarkets(mockSupermarkets);
-        return false;
+        return mockSupermarkets; // 返回mock数据
       }
     } catch (error) {
       console.warn('⚠️ 加载超市数据失败，使用mock数据:', error);
       setSupermarkets(mockSupermarkets);
-      return false;
+      return mockSupermarkets; // 返回mock数据
     }
   };
 
-  const loadProducts = async () => {
+  const loadProducts = async (supermarketsData: Supermarket[]) => {
     try {
       console.log('🛒 开始从数据库加载商品数据...');
       
@@ -86,23 +86,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       // 创建超市ID映射（将旧的mock数据ID映射到实际的数据库超市ID）
+      console.log('🏪 [AppContext] 可用超市数量:', supermarketsData.length);
+      console.log('🏪 [AppContext] 超市ID列表:', supermarketsData.map(s => `${s.id}:${s.name_en}`));
+      
       const supermarketIdMapping: { [key: number]: number } = {
-        1: supermarkets[0]?.id || 8,  // 映射到第一个可用超市
-        2: supermarkets[1]?.id || 14, // 映射到第二个可用超市  
-        3: supermarkets[2]?.id || 23, // 映射到第三个可用超市
-        4: supermarkets[3]?.id || 30, // 映射到第四个可用超市
-        5: supermarkets[4]?.id || 37, // 映射到第五个可用超市
-        6: supermarkets[5]?.id || supermarkets[0]?.id || 8,
-        7: supermarkets[6]?.id || supermarkets[1]?.id || 14,
-        8: supermarkets[7]?.id || supermarkets[2]?.id || 23,
-        9: supermarkets[8]?.id || supermarkets[3]?.id || 30,
-        10: supermarkets[9]?.id || supermarkets[4]?.id || 37
+        1: supermarketsData[0]?.id || 8,  // 映射到第一个可用超市
+        2: supermarketsData[1]?.id || 14, // 映射到第二个可用超市  
+        3: supermarketsData[2]?.id || 23, // 映射到第三个可用超市
+        4: supermarketsData[3]?.id || 30, // 映射到第四个可用超市
+        5: supermarketsData[4]?.id || 37, // 映射到第五个可用超市
+        6: supermarketsData[5]?.id || supermarketsData[0]?.id || 8,
+        7: supermarketsData[6]?.id || supermarketsData[1]?.id || 14,
+        8: supermarketsData[7]?.id || supermarketsData[2]?.id || 23,
+        9: supermarketsData[8]?.id || supermarketsData[3]?.id || 30,
+        10: supermarketsData[9]?.id || supermarketsData[4]?.id || 37
       };
+      
+      console.log('🔗 [AppContext] 超市ID映射表:', supermarketIdMapping);
 
       const transformedProducts: Product[] = data.map((item: any) => {
         // 使用映射后的超市ID
         const mappedSupermarketId = supermarketIdMapping[item.supermarket_id] || item.supermarket_id;
-        const supermarket = supermarkets.find(s => s.id === mappedSupermarketId);
+        const supermarket = supermarketsData.find(s => s.id === mappedSupermarketId);
+        
+        // Debug first few products
+        if (data.indexOf(item) < 3) {
+          console.log(`🔍 [AppContext] 商品 ${item.name_en}:`, {
+            原始超市ID: item.supermarket_id,
+            映射后超市ID: mappedSupermarketId,
+            找到超市: !!supermarket,
+            超市名称: supermarket?.name_en
+          });
+        }
         
         return {
           id: item.id,
@@ -142,11 +157,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setConnectionStatus('connecting');
       setIsLoading(true);
       
-      // 先加载超市数据
-      await loadSupermarkets();
+      // 先加载超市数据并获取实际数据
+      const supermarketsData = await loadSupermarkets();
       
-      // 再加载商品数据
-      const productsLoaded = await loadProducts();
+      // 将超市数据传递给商品加载函数
+      const productsLoaded = await loadProducts(supermarketsData);
       
       if (productsLoaded) {
         setConnectionStatus('connected');

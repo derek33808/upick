@@ -156,6 +156,33 @@ function AppContent() {
     };
   }, []);
 
+  // Handle navigation from ProductGrid to comparison view
+  useEffect(() => {
+    const handleNavigateToProductComparison = (event: any) => {
+      const { productName } = event.detail;
+      
+      // Switch to home tab and set product name for comparison
+      const newState = { 
+        activeTab: 'home',
+        selectedCategory: null,
+        selectedProductName: productName 
+      };
+      
+      setActiveTab('home');
+      setSelectedCategory(null);
+      setSelectedProductName(productName);
+      setSelectedProduct(null);
+      
+      pushStateToHistory(newState);
+    };
+
+    window.addEventListener('navigateToProductComparison', handleNavigateToProductComparison);
+    
+    return () => {
+      window.removeEventListener('navigateToProductComparison', handleNavigateToProductComparison);
+    };
+  }, []);
+
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
     // 产品详情是模态框，不需要改变URL，但要添加到历史中以便返回
@@ -275,7 +302,7 @@ function AppContent() {
       case 'products':
         return (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
-            <ProductGrid onProductClick={handleProductClick} />
+            <ProductGrid />
           </div>
         );
       case 'map':
