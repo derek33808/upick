@@ -1,4 +1,4 @@
-import { ArrowLeft, ShoppingCart, TrendingDown, Clock, Zap, TrendingUp, Heart } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, TrendingDown, Clock, Zap, TrendingUp, Heart, Plus, Check } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
@@ -15,8 +15,16 @@ interface SubCategoryViewProps {
 export function SubCategoryView({ category, onBack, onProductNameClick }: SubCategoryViewProps) {
   const { language, products } = useApp();
   const { user, isAuthenticated } = useAuth();
-  const { checkIsProductFavorite, addToProductFavorites, removeFromProductFavorites, isLoading } = useUser();
+  const { 
+    checkIsProductFavorite, 
+    addToProductFavorites, 
+    removeFromProductFavorites, 
+    addToCart,
+    checkIsInCart,
+    isLoading 
+  } = useUser();
   const [updating, setUpdating] = useState<Set<string>>(new Set());
+  const [cartUpdating, setCartUpdating] = useState<Set<string>>(new Set());
 
   const text = {
     en: {
@@ -40,7 +48,13 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
       and: 'and',
       others: 'others',
       specialOffer: 'Special Offer',
-      off: 'OFF'
+      off: 'OFF',
+      addToCart: 'Add to Cart',
+      addedToCart: 'Added to Cart',
+      alreadyInCart: 'Already in Cart',
+      addFromStore: 'Add from {storeName}',
+      cartError: 'Failed to add to cart',
+      loginRequired: 'Please login to add items to cart'
     },
     zh: {
       back: '返回分类',
@@ -63,7 +77,13 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
       and: '和',
       others: '等',
       specialOffer: '特价优惠',
-      off: '折扣'
+      off: '折扣',
+      addToCart: '加入购物车',
+      addedToCart: '已加入购物车',
+      alreadyInCart: '已在购物车中',
+      addFromStore: '从{storeName}购买',
+      cartError: '加入购物车失败',
+      loginRequired: '请登录后添加商品到购物车'
     }
   };
 
@@ -175,6 +195,50 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
         return next;
       });
     }
+  };
+
+  // 处理加入购物车
+  const handleAddToCart = async (productGroup: any) => {
+    if (!isAuthenticated || !user) {
+      window.dispatchEvent(new CustomEvent('showLoginModal'));
+      return;
+    }
+
+    const cleanedName = cleanProductName(productGroup.name_en);
+    if (cartUpdating.has(cleanedName)) return;
+    
+    setCartUpdating(prev => new Set(prev.add(cleanedName)));
+    
+    try {
+      // 获取最低价格的商品
+      const lowestPriceProduct = productGroup.lowestPriceStores[0];
+      const storeName = language === 'en' ? lowestPriceProduct.supermarket?.name_en : lowestPriceProduct.supermarket?.name_zh;
+      const notes = text[language].addFromStore.replace('{storeName}', storeName || '');
+      
+      const success = await addToCart(lowestPriceProduct.id, 1, notes);
+      
+      if (success) {
+        // 显示成功提示
+        console.log(text[language].addedToCart);
+      } else {
+        console.error(text[language].cartError);
+      }
+    } catch (error) {
+      console.error('加入购物车失败:', error);
+    } finally {
+      setCartUpdating(prev => {
+        const next = new Set(prev);
+        next.delete(cleanedName);
+        return next;
+      });
+    }
+  };
+
+  // 检查商品是否已在购物车中
+  const isProductInCart = (productGroup: any) => {
+    const lowestPriceProduct = productGroup.lowestPriceStores[0];
+    const cartStatus = checkIsInCart(lowestPriceProduct.id);
+    return cartStatus.inCart;
   };
 
   return (
@@ -296,8 +360,39 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
                         {text[language].availableAt} {formatStoreNames(productGroup.lowestPriceStores)}
                       </div>
                       
+                      {/* 直接加入购物车按钮 */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddToCart(productGroup);
+                        }}
+                        disabled={cartUpdating.has(productGroup.name_en) || isLoading}
+                        className={`w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-lg font-medium transition-colors ${
+                          isProductInCart(productGroup)
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                            : 'bg-green-600 text-white hover:bg-green-700'
+                        } ${language === 'zh' ? 'font-chinese' : ''}`}
+                        aria-label={isProductInCart(productGroup) ? text[language].alreadyInCart : text[language].addToCart}
+                      >
+                        {cartUpdating.has(productGroup.name_en) ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                        ) : isProductInCart(productGroup) ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <Plus className="w-4 h-4" />
+                        )}
+                        <span>
+                          {cartUpdating.has(productGroup.name_en) 
+                            ? (language === 'zh' ? '添加中...' : 'Adding...')
+                            : isProductInCart(productGroup)
+                            ? text[language].alreadyInCart
+                            : text[language].addToCart
+                          }
+                        </span>
+                      </button>
+                      
                       {/* Historical Price Comparison */}
-                      <div className="border-t border-green-200 pt-3">
+                      <div className="border-t border-green-200 pt-3 mt-3">
                         <div className={`text-xs text-gray-600 mb-1 ${language === 'zh' ? 'font-chinese' : ''}`}>
                           {text[language].historicalLow}: ${historicalLow.toFixed(2)}
                         </div>
