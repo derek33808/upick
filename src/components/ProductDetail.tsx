@@ -1,4 +1,4 @@
-import { X, Heart, MapPin, Star, Clock, Package, Award, LogIn, Navigation, Plus, Check } from 'lucide-react';
+import { X, Heart, MapPin, Star, Clock, Package, Award, LogIn, Navigation, Check, ShoppingCart } from 'lucide-react';
 import { Product } from '../types';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -225,14 +225,45 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
             <div className="bg-gray-50 rounded-xl p-4 mb-4">
               {product.isSpecial ? (
                 <div>
-                  <div className="flex items-center space-x-3 mb-2">
-                    <span className="text-3xl font-bold text-red-600">
-                      ${product.price}
-                    </span>
-                    <span className="text-lg text-gray-500 line-through">
-                      ${product.originalPrice}
-                    </span>
-                    <span className="text-sm text-gray-600">{product.unit}</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-3xl font-bold text-red-600">
+                        ${product.price}
+                      </span>
+                      <span className="text-lg text-gray-500 line-through">
+                        ${product.originalPrice}
+                      </span>
+                      <span className="text-sm text-gray-600">{product.unit}</span>
+                    </div>
+                    {/* 购物车小图标按钮 */}
+                    {isAuthenticated ? (
+                      <button
+                        onClick={handleCartToggle}
+                        disabled={isUpdating || isLoading}
+                        className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
+                          cartStatus.inCart
+                            ? 'bg-orange-200 text-orange-700 hover:bg-orange-300'
+                            : 'bg-primary-600 text-white hover:bg-primary-700'
+                        }`}
+                        title={cartStatus.inCart ? text[language].alreadyInShoppingList : text[language].addToShoppingList}
+                      >
+                        {isUpdating ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                        ) : cartStatus.inCart ? (
+                          <Check className="w-5 h-5" />
+                        ) : (
+                          <ShoppingCart className="w-5 h-5" />
+                        )}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => window.dispatchEvent(new CustomEvent('showLoginModal'))}
+                        className="flex items-center justify-center w-10 h-10 rounded-full transition-colors bg-primary-100 text-primary-700 hover:bg-primary-200"
+                        title={text[language].loginToShoppingList}
+                      >
+                        <ShoppingCart className="w-5 h-5" />
+                      </button>
+                    )}
                   </div>
                   <div className="flex items-center space-x-4 text-sm">
                     <span className="text-green-600 font-semibold">
@@ -246,11 +277,42 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center space-x-3">
-                  <span className="text-3xl font-bold text-primary-600">
-                    ${product.price}
-                  </span>
-                  <span className="text-sm text-gray-600">{product.unit}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-3xl font-bold text-primary-600">
+                      ${product.price}
+                    </span>
+                    <span className="text-sm text-gray-600">{product.unit}</span>
+                  </div>
+                  {/* 购物车小图标按钮 */}
+                  {isAuthenticated ? (
+                    <button
+                      onClick={handleCartToggle}
+                      disabled={isUpdating || isLoading}
+                      className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
+                        cartStatus.inCart
+                          ? 'bg-orange-200 text-orange-700 hover:bg-orange-300'
+                          : 'bg-primary-600 text-white hover:bg-primary-700'
+                      }`}
+                      title={cartStatus.inCart ? text[language].alreadyInShoppingList : text[language].addToShoppingList}
+                    >
+                      {isUpdating ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                      ) : cartStatus.inCart ? (
+                        <Check className="w-5 h-5" />
+                      ) : (
+                        <ShoppingCart className="w-5 h-5" />
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent('showLoginModal'))}
+                      className="flex items-center justify-center w-10 h-10 rounded-full transition-colors bg-primary-100 text-primary-700 hover:bg-primary-200"
+                      title={text[language].loginToShoppingList}
+                    >
+                      <ShoppingCart className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -340,13 +402,13 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
             </div>
 
             {/* Action Buttons */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+            <div className="flex justify-center mb-6">
               {/* Favorite Button */}
               {isAuthenticated ? (
                 <button
                   onClick={handleFavoriteToggle}
                   disabled={isUpdating || isLoading}
-                  className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors disabled:opacity-50 ${
+                  className={`flex items-center justify-center space-x-2 px-6 py-3 rounded-xl font-medium transition-colors disabled:opacity-50 ${
                     isFavorite
                       ? 'bg-red-100 text-red-700 hover:bg-red-200'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -366,44 +428,10 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent('showLoginModal'));
                   }}
-                  className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors bg-primary-100 text-primary-700 hover:bg-primary-200 ${language === 'zh' ? 'font-chinese' : ''}`}
+                  className={`flex items-center justify-center space-x-2 px-6 py-3 rounded-xl font-medium transition-colors bg-primary-100 text-primary-700 hover:bg-primary-200 ${language === 'zh' ? 'font-chinese' : ''}`}
                 >
                   <LogIn className="w-5 h-5" />
                   <span>{text[language].loginToFavorite}</span>
-                </button>
-              )}
-
-              {/* Shopping List Button */}
-              {isAuthenticated ? (
-                <button
-                  onClick={handleCartToggle}
-                  disabled={isUpdating || isLoading}
-                  className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors disabled:opacity-50 ${
-                    cartStatus.inCart
-                      ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                      : 'bg-primary-100 text-primary-700 hover:bg-primary-200'
-                  } ${language === 'zh' ? 'font-chinese' : ''}`}
-                >
-                  {isUpdating ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
-                  ) : cartStatus.inCart ? (
-                    <Check className="w-5 h-5" />
-                  ) : (
-                    <Plus className="w-5 h-5" />
-                  )}
-                  <span>
-                    {cartStatus.inCart ? text[language].alreadyInShoppingList : text[language].addToShoppingList}
-                  </span>
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    window.dispatchEvent(new CustomEvent('showLoginModal'));
-                  }}
-                  className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-colors bg-primary-100 text-primary-700 hover:bg-primary-200 ${language === 'zh' ? 'font-chinese' : ''}`}
-                >
-                  <LogIn className="w-5 h-5" />
-                  <span>{text[language].loginToShoppingList}</span>
                 </button>
               )}
             </div>

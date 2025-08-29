@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Package, TrendingDown, Clock, Heart, TrendingUp, Zap } from 'lucide-react';
+import { Package, TrendingDown, Clock, Heart, TrendingUp, Zap, ShoppingCart, Check } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
@@ -10,7 +10,6 @@ export function ProductGrid(): JSX.Element {
   const { 
     language, 
     products, 
-    isLoading,
     searchTerm, 
     selectedCategory, 
     selectedSupermarkets, 
@@ -20,9 +19,13 @@ export function ProductGrid(): JSX.Element {
   const { 
     checkIsProductFavorite,
     addToProductFavorites,
-    removeFromProductFavorites
+    removeFromProductFavorites,
+    addToCart,
+    checkIsInCart,
+    isLoading
   } = useUser();
   const [updating, setUpdating] = useState<Set<string>>(new Set());
+  const [cartUpdating, setCartUpdating] = useState<Set<string>>(new Set());
 
   const text = {
     en: {
@@ -116,6 +119,39 @@ export function ProductGrid(): JSX.Element {
       const firstName = language === 'en' ? stores[0].supermarket?.name_en : stores[0].supermarket?.name_zh;
       return `${firstName} ${text[language].and} ${stores.length - 1} ${text[language].others}`;
     }
+  };
+
+  // 加入购物车（取最低价的那个具体商品）
+  const handleAddToCart = async (productGroup: any) => {
+    if (!isAuthenticated || !user) {
+      window.dispatchEvent(new CustomEvent('showLoginModal'));
+      return;
+    }
+
+    const key = cleanProductName(productGroup.name_en);
+    if (cartUpdating.has(key)) return;
+
+    setCartUpdating(prev => new Set(prev.add(key)));
+    try {
+      const lowest = productGroup.lowestPriceStores[0];
+      const success = await addToCart(lowest.id, 1);
+      if (!success) {
+        console.error('[ProductGrid] addToCart failed');
+      }
+    } catch (err) {
+      console.error('[ProductGrid] addToCart error:', err);
+    } finally {
+      setCartUpdating(prev => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  };
+
+  const isProductInCart = (productGroup: any) => {
+    const lowest = productGroup.lowestPriceStores[0];
+    return checkIsInCart(lowest.id).inCart;
   };
 
   const handleToggleProductFavorite = async (
@@ -273,7 +309,7 @@ export function ProductGrid(): JSX.Element {
                         console.log(`[ProductGrid] Image failed to load for ${productGroup.name_en}, applying fallback`);
                         e.currentTarget.src = generateProductPlaceholder(productGroup.name_en, 80);
                       }}
-                      onLoad={(e) => {
+                      onLoad={() => {
                         console.log(`[ProductGrid] Image loaded successfully for ${productGroup.name_en}`);
                       }}
                       onAbort={(e) => {
@@ -319,11 +355,31 @@ export function ProductGrid(): JSX.Element {
 
                 {/* Lowest Price Section */}
                 <div className="bg-green-50 rounded-lg lg:rounded-xl p-3 lg:p-4 border border-green-200">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <TrendingDown className="w-5 h-5 text-green-600" />
-                    <span className={`text-sm font-semibold text-green-800 ${language === 'zh' ? 'font-chinese' : ''}`}>
-                      {text[language].lowestPrice}
-                    </span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <TrendingDown className="w-5 h-5 text-green-600" />
+                      <span className={`text-sm font-semibold text-green-800 ${language === 'zh' ? 'font-chinese' : ''}`}>
+                        {text[language].lowestPrice}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => { handleAddToCart(productGroup); }}
+                      disabled={cartUpdating.has(productGroup.name_en) || isLoading}
+                      className={`flex items-center justify-center w-8 h-8 rounded-full transition-colors ${
+                        isProductInCart(productGroup)
+                          ? 'bg-green-200 text-green-700 hover:bg-green-300'
+                          : 'bg-green-600 text-white hover:bg-green-700'
+                      }`}
+                      title={isProductInCart(productGroup) ? '已在购物车中' : '加入购物车'}
+                    >
+                      {cartUpdating.has(productGroup.name_en) ? (
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                      ) : isProductInCart(productGroup) ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        <ShoppingCart className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
                   <div className="text-xl lg:text-2xl font-bold text-green-600 mb-2">
                     ${productGroup.minPrice.toFixed(2)}

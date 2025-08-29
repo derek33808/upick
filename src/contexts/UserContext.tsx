@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { useApp } from './AppContext';
 import { UserService } from '../services/UserService';
@@ -84,6 +84,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [productFavorites, setProductFavorites] = useState<ProductFavorite[]>([]);
   const [storeFavorites, setStoreFavorites] = useState<StoreFavorite[]>([]);
+  const routeCalcTimerRef = useRef<number | null>(null);
+  const lastRouteSignatureRef = useRef<string | null>(null);
 
   const clearError = () => setError(null);
   const createDemoAccounts = async () => {
@@ -128,6 +130,34 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setError(`创建失败:\n${results.join('\n')}`);
     }
   };
+
+  // 监听购物车变化，自动触发路线计算（去抖，避免频繁计算）
+  useEffect(() => {
+    if (!user) return;
+    const itemCount = cart.reduce((n, i) => n + i.quantity, 0);
+    if (itemCount === 0) {
+      setShoppingRoute(null);
+      lastRouteSignatureRef.current = null;
+      return;
+    }
+
+    // 生成签名，避免重复计算同一状态
+    const signature = cart
+      .slice()
+      .sort((a, b) => a.product_id - b.product_id)
+      .map(i => `${i.product_id}:${i.quantity}`)
+      .join('|');
+
+    if (lastRouteSignatureRef.current === signature) return;
+    lastRouteSignatureRef.current = signature;
+
+    if (routeCalcTimerRef.current) {
+      window.clearTimeout(routeCalcTimerRef.current);
+    }
+    routeCalcTimerRef.current = window.setTimeout(() => {
+      calculateOptimalRoute();
+    }, 400);
+  }, [cart.map(i => ({ id: i.product_id, q: i.quantity })).toString(), user?.id]);
 
 
   // 当用户登录状态改变时，加载用户数据
@@ -758,6 +788,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const products = items.map(item => ({
         id: item.product_id,
         name: item.product?.name_en || '',
+        name_zh: item.product?.name_zh || '',
         quantity: item.quantity,
         price: item.product?.price || 0,
         total_cost: (item.product?.price || 0) * item.quantity

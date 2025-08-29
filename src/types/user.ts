@@ -128,6 +128,7 @@ export interface ShoppingRoute {
     products: Array<{
       id: number;
       name: string;
+      name_zh?: string;
       quantity: number;
       price: number;
       total_cost: number;

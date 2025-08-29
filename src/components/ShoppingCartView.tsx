@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { ShoppingCart, Plus, Minus, Trash2, Router as Route, MapPin, Navigation, Clock, DollarSign, Star, Package } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, Router as Route, MapPin, Navigation, Star } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import { useApp } from '../contexts/AppContext';
 import { generateProductPlaceholder } from '../lib/imageUtils';
 
 export function ShoppingCartView() {
-  const { language } = useApp();
+  const { language, products } = useApp();
   const { 
     cart, 
     cartStats,
@@ -86,6 +86,12 @@ export function ShoppingCartView() {
     }
   };
 
+  const getLocalizedProductName = (productId: number, fallbackName: string) => {
+    const p = products.find(pp => pp.id === productId);
+    if (!p) return fallbackName;
+    return language === 'zh' ? (p.name_zh || fallbackName) : (p.name_en || fallbackName);
+  };
+
   const handleQuantityChange = async (productId: number, newQuantity: number) => {
     await updateCartQuantity(productId, newQuantity);
   };
@@ -148,6 +154,12 @@ export function ShoppingCartView() {
     );
   }
 
+  // 当进入购物车页面时，如果有商品但还没有路线，自动尝试计算一次
+  if (cart.length > 0 && !shoppingRoute && !isCalculatingRoute) {
+    // 非阻塞触发，避免渲染循环
+    setTimeout(() => handleCalculateRoute(), 0);
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -181,6 +193,155 @@ export function ShoppingCartView() {
               {text[language].uniqueStores}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Optimal Route Display - moved above items for better visibility */}
+      {shoppingRoute && (
+        <div className="bg-white rounded-xl border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h2 className={`text-lg font-semibold text-gray-900 ${language === 'zh' ? 'font-chinese' : ''}`}>
+                {text[language].routeDetails}
+              </h2>
+              <button
+                onClick={() => setShowRouteDetails(!showRouteDetails)}
+                className={`text-primary-600 hover:text-primary-700 font-medium ${language === 'zh' ? 'font-chinese' : ''}`}
+              >
+                {showRouteDetails ? text[language].hideRoute : text[language].showRoute}
+              </button>
+            </div>
+            {/* Route Summary */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+              <div className="text-center p-3 bg-green-50 rounded-lg">
+                <div className="text-xl font-bold text-green-600">${shoppingRoute.total_cost.toFixed(2)}</div>
+                <div className={`text-sm text-gray-600 mt-1 ${language === 'zh' ? 'font-chinese' : ''}`}>
+                  {text[language].totalCost}
+                </div>
+              </div>
+              <div className="text-center p-3 bg-blue-50 rounded-lg">
+                <div className="text-xl font-bold text-blue-600">{shoppingRoute.total_time_minutes}</div>
+                <div className={`text-sm text-gray-600 mt-1 leading-tight ${language === 'zh' ? 'font-chinese' : ''}`}>
+                  {text[language].estimatedTime}
+                  <br />
+                  <span className="text-xs">({text[language].minutes})</span>
+                </div>
+              </div>
+              <div className="text-center p-3 bg-purple-50 rounded-lg">
+                <div className="text-xl font-bold text-purple-600">{shoppingRoute.total_distance_km.toFixed(1)}</div>
+                <div className={`text-sm text-gray-600 mt-1 leading-tight ${language === 'zh' ? 'font-chinese' : ''}`}>
+                  {text[language].totalDistance}
+                  <br />
+                  <span className="text-xs">({text[language].km})</span>
+                </div>
+              </div>
+              <div className="text-center p-3 bg-orange-50 rounded-lg">
+                <div className="text-xl font-bold text-orange-600">{shoppingRoute.efficiency_score.toFixed(1)}%</div>
+                <div className={`text-sm text-gray-600 mt-1 ${language === 'zh' ? 'font-chinese' : ''}`}>
+                  {text[language].efficiencyScore}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {showRouteDetails && (
+            <div className="p-6">
+              <h3 className={`text-lg font-semibold mb-4 ${language === 'zh' ? 'font-chinese' : ''}`}>
+                {text[language].storeOrder}
+              </h3>
+              <div className="space-y-4">
+                {shoppingRoute.stores.map((store, index) => (
+                  <div key={store.id} className="border border-gray-200 rounded-lg p-4 bg-white">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
+                          {index + 1}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className={`font-semibold text-gray-900 break-words ${language === 'zh' ? 'font-chinese' : ''}`}>
+                            {store.name}
+                          </h4>
+                          <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
+                            <MapPin className="w-3 h-3 flex-shrink-0" />
+                            <span className="break-words">{store.location}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-left sm:text-right flex-shrink-0">
+                        <div className="text-lg font-bold text-gray-900">${store.store_total.toFixed(2)}</div>
+                        <div className={`text-sm text-gray-600 whitespace-nowrap ${language === 'zh' ? 'font-chinese' : ''}`}>
+                          {store.products.length} {text[language].products}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Products to buy at this store */}
+                    <div className="space-y-2 mb-3">
+                      {store.products.map((product) => (
+                        <div key={product.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm bg-gray-50 rounded-lg p-3">
+                          <span className={`font-medium text-gray-900 ${language === 'zh' ? 'font-chinese' : ''}`}>
+                            {getLocalizedProductName(product.id, product.name)}
+                          </span>
+                          <div className="flex items-center justify-between sm:justify-end gap-3">
+                            <span className={`text-gray-600 whitespace-nowrap ${language === 'zh' ? 'font-chinese' : ''}`}>
+                              {text[language].quantity}: {product.quantity}
+                            </span>
+                            <span className="font-semibold text-gray-900">${product.total_cost.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Store Actions */}
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <button
+                        onClick={() => handleViewOnMap(store)}
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors whitespace-nowrap ${language === 'zh' ? 'font-chinese' : ''}`}
+                      >
+                        <MapPin className="w-4 h-4 flex-shrink-0" />
+                        <span className="text-sm font-medium">{text[language].viewOnMap}</span>
+                      </button>
+                      <button
+                        onClick={() => handleGetDirections(store)}
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors whitespace-nowrap ${language === 'zh' ? 'font-chinese' : ''}`}
+                      >
+                        <Navigation className="w-4 h-4 flex-shrink-0" />
+                        <span className="text-sm font-medium">{text[language].getDirections}</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+                <div className="flex items-center space-x-2 text-green-800">
+                  <Star className="w-5 h-5" />
+                  <span className={`text-sm font-medium ${language === 'zh' ? 'font-chinese' : ''}`}>
+                    {text[language].routeOptimized}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Calculate Route Button for empty route (moved above items) */}
+      {cart.length > 0 && !shoppingRoute && (
+        <div className="bg-gray-50 rounded-xl p-6 text-center">
+          <Route className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <p className={`text-gray-600 mb-4 ${language === 'zh' ? 'font-chinese' : ''}`}>
+            {text[language].noRoute}
+          </p>
+          <button
+            onClick={handleCalculateRoute}
+            disabled={isCalculatingRoute}
+            className={`flex items-center space-x-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 mx-auto ${language === 'zh' ? 'font-chinese' : ''}`}
+          >
+            {isCalculatingRoute ? (
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+            ) : (
+              <Route className="w-5 h-5" />
+            )}
+            <span>{text[language].calculateRoute}</span>
+          </button>
         </div>
       )}
 
@@ -263,7 +424,7 @@ export function ShoppingCartView() {
                   <div className="md:hidden">
                     <div className="flex items-start space-x-3 mb-3">
                       <img
-                        src={item.product?.image_url || item.product?.image || generateProductPlaceholder(item.product?.id || item.product?.name_en || 'product', 64)}
+                        src={item.product?.image_url || generateProductPlaceholder(item.product?.id || item.product?.name_en || 'product', 64)}
                         alt={language === 'en' ? item.product?.name_en : item.product?.name_zh}
                         className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
                         onError={(e) => {
@@ -315,7 +476,7 @@ export function ShoppingCartView() {
                   {/* Desktop Layout */}
                   <div className="hidden md:flex items-center space-x-4">
                     <img
-                      src={item.product?.image_url || item.product?.image || generateProductPlaceholder(item.product?.id || item.product?.name_en || 'product', 64)}
+                      src={item.product?.image_url || generateProductPlaceholder(item.product?.id || item.product?.name_en || 'product', 64)}
                       alt={language === 'en' ? item.product?.name_en : item.product?.name_zh}
                       className="w-16 h-16 object-cover rounded-lg"
                       onError={(e) => {
@@ -375,160 +536,6 @@ export function ShoppingCartView() {
         )}
       </div>
 
-      {/* Optimal Route Display */}
-      {shoppingRoute && (
-        <div className="bg-white rounded-xl border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h2 className={`text-lg font-semibold text-gray-900 ${language === 'zh' ? 'font-chinese' : ''}`}>
-                {text[language].routeDetails}
-              </h2>
-              <button
-                onClick={() => setShowRouteDetails(!showRouteDetails)}
-                className={`text-primary-600 hover:text-primary-700 font-medium ${language === 'zh' ? 'font-chinese' : ''}`}
-              >
-                {showRouteDetails ? text[language].hideRoute : text[language].showRoute}
-              </button>
-            </div>
-            
-            {/* Route Summary */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-              <div className="text-center p-3 bg-green-50 rounded-lg">
-                <div className="text-xl font-bold text-green-600">${shoppingRoute.total_cost.toFixed(2)}</div>
-                <div className={`text-sm text-gray-600 mt-1 ${language === 'zh' ? 'font-chinese' : ''}`}>
-                  {text[language].totalCost}
-                </div>
-              </div>
-              <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <div className="text-xl font-bold text-blue-600">{shoppingRoute.total_time_minutes}</div>
-                <div className={`text-sm text-gray-600 mt-1 leading-tight ${language === 'zh' ? 'font-chinese' : ''}`}>
-                  {text[language].estimatedTime}
-                  <br />
-                  <span className="text-xs">({text[language].minutes})</span>
-                </div>
-              </div>
-              <div className="text-center p-3 bg-purple-50 rounded-lg">
-                <div className="text-xl font-bold text-purple-600">{shoppingRoute.total_distance_km.toFixed(1)}</div>
-                <div className={`text-sm text-gray-600 mt-1 leading-tight ${language === 'zh' ? 'font-chinese' : ''}`}>
-                  {text[language].totalDistance}
-                  <br />
-                  <span className="text-xs">({text[language].km})</span>
-                </div>
-              </div>
-              <div className="text-center p-3 bg-orange-50 rounded-lg">
-                <div className="text-xl font-bold text-orange-600">{shoppingRoute.efficiency_score.toFixed(1)}%</div>
-                <div className={`text-sm text-gray-600 mt-1 ${language === 'zh' ? 'font-chinese' : ''}`}>
-                  {text[language].efficiencyScore}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {showRouteDetails && (
-            <div className="p-6">
-              <h3 className={`text-lg font-semibold mb-4 ${language === 'zh' ? 'font-chinese' : ''}`}>
-                {text[language].storeOrder}
-              </h3>
-              
-              <div className="space-y-4">
-                {shoppingRoute.stores.map((store, index) => (
-                  <div key={store.id} className="border border-gray-200 rounded-lg p-4 bg-white">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
-                          {index + 1}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h4 className={`font-semibold text-gray-900 break-words ${language === 'zh' ? 'font-chinese' : ''}`}>
-                            {store.name}
-                          </h4>
-                          <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
-                            <MapPin className="w-3 h-3 flex-shrink-0" />
-                            <span className="break-words">{store.location}</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="text-left sm:text-right flex-shrink-0">
-                        <div className="text-lg font-bold text-gray-900">${store.store_total.toFixed(2)}</div>
-                        <div className={`text-sm text-gray-600 whitespace-nowrap ${language === 'zh' ? 'font-chinese' : ''}`}>
-                          {store.products.length} {text[language].products}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Products to buy at this store */}
-                    <div className="space-y-2 mb-3">
-                      {store.products.map((product) => (
-                        <div key={product.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm bg-gray-50 rounded-lg p-3">
-                          <span className={`font-medium text-gray-900 ${language === 'zh' ? 'font-chinese' : ''}`}>
-                            {product.name}
-                          </span>
-                          <div className="flex items-center justify-between sm:justify-end gap-3">
-                            <span className={`text-gray-600 whitespace-nowrap ${language === 'zh' ? 'font-chinese' : ''}`}>
-                              {text[language].quantity}: {product.quantity}
-                            </span>
-                            <span className="font-semibold text-gray-900">${product.total_cost.toFixed(2)}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Store Actions */}
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <button
-                        onClick={() => handleViewOnMap(store)}
-                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors whitespace-nowrap ${language === 'zh' ? 'font-chinese' : ''}`}
-                      >
-                        <MapPin className="w-4 h-4 flex-shrink-0" />
-                        <span className="text-sm font-medium">{text[language].viewOnMap}</span>
-                      </button>
-                      <button
-                        onClick={() => handleGetDirections(store)}
-                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors whitespace-nowrap ${language === 'zh' ? 'font-chinese' : ''}`}
-                      >
-                        <Navigation className="w-4 h-4 flex-shrink-0" />
-                        <span className="text-sm font-medium">{text[language].getDirections}</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
-                <div className="flex items-center space-x-2 text-green-800">
-                  <Star className="w-5 h-5" />
-                  <span className={`text-sm font-medium ${language === 'zh' ? 'font-chinese' : ''}`}>
-                    {text[language].routeOptimized}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Calculate Route Button for empty route */}
-      {cart.length > 0 && !shoppingRoute && (
-        <div className="bg-gray-50 rounded-xl p-6 text-center">
-          <Route className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className={`text-gray-600 mb-4 ${language === 'zh' ? 'font-chinese' : ''}`}>
-            {text[language].noRoute}
-          </p>
-          <button
-            onClick={handleCalculateRoute}
-            disabled={isCalculatingRoute}
-            className={`flex items-center space-x-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 mx-auto ${language === 'zh' ? 'font-chinese' : ''}`}
-          >
-            {isCalculatingRoute ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-            ) : (
-              <Route className="w-5 h-5" />
-            )}
-            <span>{text[language].calculateRoute}</span>
-          </button>
-        </div>
-      )}
     </div>
   );
 }

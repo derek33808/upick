@@ -1,4 +1,4 @@
-import { ArrowLeft, ShoppingCart, TrendingDown, Clock, Zap, TrendingUp, Heart, Plus, Check } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, TrendingDown, Clock, Zap, TrendingUp, Heart, Check } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
@@ -301,7 +301,7 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
                             console.log(`[SubCategoryView] Image failed to load for ${productGroup.name_en}, applying fallback`);
                             e.currentTarget.src = generateProductPlaceholder(productGroup.name_en, 80);
                           }}
-                          onLoad={(e) => {
+                          onLoad={() => {
                             console.log(`[SubCategoryView] Image loaded successfully for ${productGroup.name_en}`);
                           }}
                           onAbort={(e) => {
@@ -347,11 +347,35 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
 
                     {/* Lowest Price Section */}
                     <div className="bg-green-50 rounded-lg lg:rounded-xl p-3 lg:p-4 border border-green-200">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <TrendingDown className="w-5 h-5 text-green-600" />
-                        <span className={`text-sm font-semibold text-green-800 ${language === 'zh' ? 'font-chinese' : ''}`}>
-                          {text[language].lowestPrice}
-                        </span>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <TrendingDown className="w-5 h-5 text-green-600" />
+                          <span className={`text-sm font-semibold text-green-800 ${language === 'zh' ? 'font-chinese' : ''}`}>
+                            {text[language].lowestPrice}
+                          </span>
+                        </div>
+                        {/* 小购物车图标按钮 */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddToCart(productGroup);
+                          }}
+                          disabled={cartUpdating.has(productGroup.name_en) || isLoading}
+                          className={`flex items-center justify-center w-8 h-8 rounded-full transition-colors ${
+                            isProductInCart(productGroup)
+                              ? 'bg-green-200 text-green-700 hover:bg-green-300'
+                              : 'bg-green-600 text-white hover:bg-green-700'
+                          }`}
+                          title={isProductInCart(productGroup) ? text[language].alreadyInCart : text[language].addToCart}
+                        >
+                          {cartUpdating.has(productGroup.name_en) ? (
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                          ) : isProductInCart(productGroup) ? (
+                            <Check className="w-4 h-4" />
+                                                  ) : (
+                          <ShoppingCart className="w-4 h-4" />
+                        )}
+                        </button>
                       </div>
                       <div className="text-xl lg:text-2xl font-bold text-green-600 mb-2">
                         ${productGroup.minPrice.toFixed(2)}
@@ -359,37 +383,6 @@ export function SubCategoryView({ category, onBack, onProductNameClick }: SubCat
                       <div className={`text-xs lg:text-sm text-green-700 mb-3 line-clamp-2 ${language === 'zh' ? 'font-chinese' : ''}`}>
                         {text[language].availableAt} {formatStoreNames(productGroup.lowestPriceStores)}
                       </div>
-                      
-                      {/* 直接加入购物车按钮 */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddToCart(productGroup);
-                        }}
-                        disabled={cartUpdating.has(productGroup.name_en) || isLoading}
-                        className={`w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-lg font-medium transition-colors ${
-                          isProductInCart(productGroup)
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                            : 'bg-green-600 text-white hover:bg-green-700'
-                        } ${language === 'zh' ? 'font-chinese' : ''}`}
-                        aria-label={isProductInCart(productGroup) ? text[language].alreadyInCart : text[language].addToCart}
-                      >
-                        {cartUpdating.has(productGroup.name_en) ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                        ) : isProductInCart(productGroup) ? (
-                          <Check className="w-4 h-4" />
-                        ) : (
-                          <Plus className="w-4 h-4" />
-                        )}
-                        <span>
-                          {cartUpdating.has(productGroup.name_en) 
-                            ? (language === 'zh' ? '添加中...' : 'Adding...')
-                            : isProductInCart(productGroup)
-                            ? text[language].alreadyInCart
-                            : text[language].addToCart
-                          }
-                        </span>
-                      </button>
                       
                       {/* Historical Price Comparison */}
                       <div className="border-t border-green-200 pt-3 mt-3">
